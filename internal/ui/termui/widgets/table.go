@@ -1,34 +1,49 @@
-// Package widgets provides UI components for scheduler metrics visualization
 package widgets
 
 import (
 	"strconv"
 
-	"schedtrace-mon/internal/domain"
+	tui "github.com/gizak/termui/v3"
+	"github.com/gizak/termui/v3/widgets"
 
-	ui "github.com/gizak/termui/v3"
-	twidgets "github.com/gizak/termui/v3/widgets"
+	"github.com/yourusername/projectname/internal/ui"
 )
 
-// SchedTable displays current scheduler metrics in a table format
-type SchedTable struct {
-	*twidgets.Table
+// TableWidget displays current scheduler values.
+type TableWidget struct {
+	*widgets.Table
 }
 
-// NewSchedTable creates a new scheduler metrics table widget
-func NewSchedTable() *SchedTable {
-	t := &SchedTable{
-		Table: twidgets.NewTable(),
+// NewTableWidget creates a new table widget.
+func NewTableWidget() *TableWidget {
+	t := &TableWidget{
+		Table: widgets.NewTable(),
 	}
 	t.Title = "Current Scheduler Values"
-	t.TextStyle = ui.NewStyle(ui.ColorWhite)
+	t.TextStyle = tui.NewStyle(tui.ColorWhite)
 	t.RowSeparator = false
-	t.BorderStyle.Fg = ui.ColorYellow
+	t.BorderStyle.Fg = tui.ColorYellow
+
+	// Add initial empty data to prevent panic on first render
+	t.Rows = [][]string{
+		{"Field", "Value"},
+		{"Time (ms)", "-"},
+		{"gomaxprocs", "-"},
+		{"idleprocs", "-"},
+		{"threads", "-"},
+		{"spinningthreads", "-"},
+		{"needspinning", "-"},
+		{"idlethreads", "-"},
+		{"runqueue (GRQ)", "-"},
+		{"LRQ (sum)", "-"},
+		{"Number of P", "-"},
+	}
+
 	return t
 }
 
-// Update refreshes table with current scheduler data
-func (t *SchedTable) Update(data domain.SchedData) {
+// Update updates table with current values.
+func (t *TableWidget) Update(data ui.CurrentValues) {
 	t.Rows = [][]string{
 		{"Field", "Value"},
 		{"Time (ms)", strconv.Itoa(data.TimeMs)},
@@ -39,7 +54,7 @@ func (t *SchedTable) Update(data domain.SchedData) {
 		{"needspinning", strconv.Itoa(data.NeedSpinning)},
 		{"idlethreads", strconv.Itoa(data.IdleThreads)},
 		{"runqueue (GRQ)", strconv.Itoa(data.RunQueue)},
-		{"LRQ (sum)", strconv.Itoa(data.LrqSum)},
-		{"P count", strconv.Itoa(len(data.Lrq))},
+		{"LRQ (sum)", strconv.Itoa(data.LRQSum)},
+		{"Number of P", strconv.Itoa(data.NumP)},
 	}
 }

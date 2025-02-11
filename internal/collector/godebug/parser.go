@@ -5,28 +5,38 @@ import (
 	"strconv"
 	"strings"
 
-	"schedtrace-mon/internal/domain"
+	"github.com/yourusername/projectname/internal/domain"
 )
 
-// Regular expression for SCHED trace lines with format:
-// SCHED 2013ms: gomaxprocs=14 idleprocs=14 threads=22 spinningthreads=0 needspinning=0 idlethreads=17 runqueue=0 [0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-var schedRegex = regexp.MustCompile(
-	`^SCHED\s+(\d+)ms:\s+` +
-		`gomaxprocs=(\d+)\s+` +
-		`idleprocs=(\d+)\s+` +
-		`threads=(\d+)\s+` +
-		`spinningthreads=(\d+)\s+` +
-		`needspinning=(\d+)\s+` +
-		`idlethreads=(\d+)\s+` +
-		`runqueue=(\d+)\s+\[([0-9\s]+)\]`,
-)
+// Parser handles parsing of GODEBUG schedtrace output lines.
+type Parser struct {
+	regex *regexp.Regexp
+}
 
-// ParseSchedLine parses a single GODEBUG=schedtrace output line into SchedData.
-// Returns nil for both error and SchedData if the line doesn't match expected format.
-func ParseSchedLine(line string) (*domain.SchedData, error) {
-	matches := schedRegex.FindStringSubmatch(line)
+// NewParser creates a new GODEBUG output parser.
+func NewParser() *Parser {
+	// Regex for lines like:
+	// SCHED 2013ms: gomaxprocs=14 idleprocs=14 threads=22 spinningthreads=0 needspinning=0 idlethreads=17 runqueue=0 [0 0 0 0 0 0 0 0 0 0 0 0 0 0]
+	return &Parser{
+		regex: regexp.MustCompile(
+			`^SCHED\s+(\d+)ms:\s+` +
+				`gomaxprocs=(\d+)\s+` +
+				`idleprocs=(\d+)\s+` +
+				`threads=(\d+)\s+` +
+				`spinningthreads=(\d+)\s+` +
+				`needspinning=(\d+)\s+` +
+				`idlethreads=(\d+)\s+` +
+				`runqueue=(\d+)\s+\[([0-9\s]+)\]`,
+		),
+	}
+}
+
+// Parse attempts to parse a single line of schedtrace output.
+// Returns the parsed snapshot and true if successful, or zero value and false if parsing failed.
+func (p *Parser) Parse(line string) (domain.SchedulerSnapshot, bool) {
+	matches := p.regex.FindStringSubmatch(line)
 	if len(matches) != 10 {
-		return nil, nil // not a sched trace line - skip
+		return domain.SchedulerSnapshot{}, false
 	}
 
 	timeMs, _ := strconv.Atoi(matches[1])
@@ -38,9 +48,8 @@ func ParseSchedLine(line string) (*domain.SchedData, error) {
 	idleThreads, _ := strconv.Atoi(matches[7])
 	runQ, _ := strconv.Atoi(matches[8])
 
-	// Parse Local Run Queues
-	brackets := matches[9]
-	fields := strings.Fields(brackets)
+	// Parse LRQ values
+	fields := strings.Fields(matches[9])
 	lrqVals := make([]int, len(fields))
 	sumLRQ := 0
 	for i, s := range fields {
@@ -50,7 +59,7 @@ func ParseSchedLine(line string) (*domain.SchedData, error) {
 		}
 	}
 
-	return &domain.SchedData{
+	return domain.SchedulerSnapshot{
 		TimeMs:          timeMs,
 		GoMaxProcs:      gmp,
 		IdleProcs:       idleProcs,
@@ -59,7 +68,7 @@ func ParseSchedLine(line string) (*domain.SchedData, error) {
 		NeedSpinning:    needSpin,
 		IdleThreads:     idleThreads,
 		RunQueue:        runQ,
-		LrqSum:          sumLRQ,
-		Lrq:             lrqVals,
-	}, nil
+		LRQSum:          sumLRQ,
+		LRQ:             lrqVals,
+	}, true
 }

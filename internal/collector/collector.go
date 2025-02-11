@@ -1,26 +1,32 @@
-// Package collector provides interfaces and implementations for gathering scheduler metrics
+// Package collector provides interfaces and implementations for gathering Go scheduler metrics.
 package collector
 
 import (
 	"context"
-	"schedtrace-mon/internal/domain"
+
+	"github.com/yourusername/projectname/internal/domain"
 )
 
-// Collector defines interface for gathering and storing scheduler metrics
+// Collector defines interface for gathering scheduler metrics from various sources.
+//
+// System layout:
+//
+//	┌──────────────────┐
+//	│  Target Process  │
+//	│  with GODEBUG    │──┐
+//	└──────────────────┘  │
+//	                      │ stderr
+//	┌──────────────────┐  │
+//	│    Collector     │◄─┘
+//	│  ┌────────────┐  │
+//	│  │  Parser    │  │
+//	│  └────────────┘  │
+//	└──────────────────┘
 type Collector interface {
-	// Start begins collecting metrics for the specified command.
-	// The collection continues until context is cancelled or error occurs.
-	Start(ctx context.Context, targetCmd string) error
+	// Start begins collecting metrics from the target process.
+	// It returns a channel that will receive scheduler snapshots.
+	Start(ctx context.Context) (<-chan domain.SchedulerSnapshot, error)
 
-	// Stop terminates metric collection and cleans up resources
+	// Stop gracefully stops the collection process.
 	Stop() error
-
-	// GetCurrent returns the most recent scheduler state
-	GetCurrent() domain.SchedData
-
-	// GetHistory returns historical scheduler states
-	GetHistory() []domain.SchedData
 }
-
-// MaxHistoryPoints defines how many data points to keep in history
-const MaxHistoryPoints = 60

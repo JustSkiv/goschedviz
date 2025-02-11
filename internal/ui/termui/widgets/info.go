@@ -1,39 +1,45 @@
+// Package widgets provides terminal UI components using termui library.
 package widgets
 
 import (
 	"fmt"
 	"time"
 
-	ui "github.com/gizak/termui/v3"
-	twidgets "github.com/gizak/termui/v3/widgets"
+	"github.com/gizak/termui/v3/widgets"
+
+	tui "github.com/gizak/termui/v3"
+
+	"github.com/yourusername/projectname/internal/ui"
 )
 
-// InfoPanel shows monitoring statistics and help
-type InfoPanel struct {
-	*twidgets.Paragraph
+// InfoBox displays additional monitoring information.
+// Shows:
+// - Exit instructions
+// - Last update timestamp
+// - Maximum values for GRQ and LRQ
+type InfoBox struct {
+	*widgets.Paragraph
 }
 
-// NewInfoPanel creates a new info panel widget
-func NewInfoPanel() *InfoPanel {
-	p := &InfoPanel{
-		Paragraph: twidgets.NewParagraph(),
+// NewInfoBox creates a new info box widget with default styling.
+func NewInfoBox() *InfoBox {
+	i := &InfoBox{
+		Paragraph: widgets.NewParagraph(),
 	}
-	p.Title = "Information"
-	p.BorderStyle.Fg = ui.ColorCyan
-	return p
+	i.Title = "Information"
+	i.BorderStyle.Fg = tui.ColorCyan
+	return i
 }
 
-// Update refreshes info panel with current statistics
-func (p *InfoPanel) Update(historyLen, maxGRQ, maxLRQ int) {
-	p.Text = fmt.Sprintf(
+// Update refreshes info box with current monitoring state.
+func (i *InfoBox) Update(current ui.CurrentValues, gauges ui.GaugeValues) {
+	i.Text = fmt.Sprintf(
 		"Press 'q' to exit\n"+
 			"Last update: %s\n"+
-			"History points: %d\n"+
 			"Max GRQ: %d\n"+
 			"Max LRQ (sum): %d\n",
 		time.Now().Format("15:04:05"),
-		historyLen,
-		maxGRQ,
-		maxLRQ,
+		gauges.GRQ.Max,
+		gauges.LRQ.Max,
 	)
 }

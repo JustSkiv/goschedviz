@@ -1,3 +1,4 @@
+// Package godebug implements scheduler metrics collection from GODEBUG=schedtrace output.
 package godebug
 
 import (
@@ -6,92 +7,72 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
-	"sync"
 
-	"schedtrace-mon/internal/collector"
-	"schedtrace-mon/internal/domain"
+	"github.com/yourusername/projectname/internal/domain"
 )
 
-// Collector implements the collector.Collector interface for GODEBUG=schedtrace metrics
+// Collector implements collector.Collector interface for GODEBUG schedtrace output.
 type Collector struct {
-	mu      sync.RWMutex
-	cmd     *exec.Cmd
-	latest  domain.SchedData
-	history []domain.SchedData
+	cmd    *exec.Cmd
+	done   chan struct{}
+	path   string
+	period int // schedtrace period in milliseconds
 }
 
-// NewCollector creates a new GODEBUG metrics collector
-func NewCollector() *Collector {
+// New creates a new GODEBUG collector that will monitor the specified program.
+func New(programPath string, tracePeriod int) *Collector {
 	return &Collector{
-		history: make([]domain.SchedData, 0, collector.MaxHistoryPoints),
+		path:   programPath,
+		period: tracePeriod,
+		done:   make(chan struct{}),
 	}
 }
 
-// Start begins collecting metrics by running the specified command with GODEBUG=schedtrace=1000
-func (c *Collector) Start(ctx context.Context, targetCmd string) error {
-	cmdParts := strings.Fields(targetCmd)
-	if len(cmdParts) == 0 {
-		return fmt.Errorf("empty command")
-	}
+// Start implements collector.Collector interface.
+func (c *Collector) Start(ctx context.Context) (<-chan domain.SchedulerSnapshot, error) {
+	snapshots := make(chan domain.SchedulerSnapshot)
 
-	c.cmd = exec.Command(cmdParts[0], cmdParts[1:]...)
-	c.cmd.Env = append(os.Environ(), "GODEBUG=schedtrace=1000")
+	c.cmd = exec.Command("go", "run", c.path)
+	c.cmd.Env = append(os.Environ(), fmt.Sprintf("GODEBUG=schedtrace=%d", c.period))
 
 	stderr, err := c.cmd.StderrPipe()
 	if err != nil {
-		return fmt.Errorf("getting stderr pipe: %w", err)
+		return nil, fmt.Errorf("failed to get stderr pipe: %w", err)
 	}
 
 	if err := c.cmd.Start(); err != nil {
-		return fmt.Errorf("starting command: %w", err)
+		return nil, fmt.Errorf("failed to start process: %w", err)
 	}
 
-	// Parse stderr lines in a goroutine
 	go func() {
+		defer close(snapshots)
+		defer c.cmd.Process.Kill()
+
 		scanner := bufio.NewScanner(stderr)
+		parser := NewParser()
+
 		for scanner.Scan() {
-			if data, err := ParseSchedLine(scanner.Text()); err == nil && data != nil {
-				c.update(*data)
+			select {
+			case <-ctx.Done():
+				return
+			case <-c.done:
+				return
+			default:
+				if snapshot, ok := parser.Parse(scanner.Text()); ok {
+					snapshots <- snapshot
+				}
 			}
 		}
 	}()
 
-	return nil
+	return snapshots, nil
 }
 
-// Stop terminates the monitored command and stops collection
+// Stop implements collector.Collector interface.
 func (c *Collector) Stop() error {
+	close(c.done)
 	if c.cmd != nil && c.cmd.Process != nil {
 		return c.cmd.Process.Kill()
 	}
 	return nil
-}
-
-// update adds new metric data to the collector state
-func (c *Collector) update(data domain.SchedData) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	c.latest = data
-	c.history = append(c.history, data)
-	if len(c.history) > collector.MaxHistoryPoints {
-		c.history = c.history[1:]
-	}
-}
-
-// GetCurrent returns the most recent scheduler state
-func (c *Collector) GetCurrent() domain.SchedData {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return c.latest
-}
-
-// GetHistory returns a copy of historical scheduler states
-func (c *Collector) GetHistory() []domain.SchedData {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	result := make([]domain.SchedData, len(c.history))
-	copy(result, c.history)
-	return result
 }

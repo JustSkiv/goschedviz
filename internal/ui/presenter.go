@@ -1,22 +1,33 @@
-// Package ui provides interfaces and implementations for metrics visualization
+// Package ui provides interfaces and implementations for visualizing scheduler metrics.
 package ui
 
-import (
-	"schedtrace-mon/internal/collector"
-	"schedtrace-mon/internal/domain"
-)
-
-// Presenter defines interface for displaying scheduler metrics
+// Presenter defines interface for any UI implementation that can visualize scheduler metrics.
+//
+// UI Layout Reference:
+//
+//	┌─────────────────────────────────┬─────────────────────────────────┐
+//	│     Current Values Table        │      Local Run Queue Bars       │
+//	│    (30% height, 40% width)      │     (30% height, 60% width)     │
+//	├─────────────────────────────────┴─────────────────────────────────┤
+//	│                    Run Queue Gauges                               │
+//	│           GRQ (50% width) | LRQ Sum (50% width)                  │
+//	│                       (30% height)                               │
+//	├─────────────────────────────────┬─────────────────────────────────┤
+//	│       History Plot              │           Info Box              │
+//	│    (40% height, 80% width)      │    (40% height, 20% width)      │
+//	└─────────────────────────────────┴─────────────────────────────────┘
 type Presenter interface {
-	// Init initializes the UI system
-	Init() error
+	// Start initializes and starts the UI.
+	// Returns error if initialization fails.
+	Start() error
 
-	// Close performs cleanup of UI resources
-	Close() error
+	// Stop gracefully shuts down the UI.
+	Stop()
 
-	// Display shows current metrics from the collector
-	Display(collector.Collector)
+	// Update updates UI with new metrics data.
+	Update(data UIData)
 
-	// HandleEvents sets up UI event handling
-	HandleEvents(handler func(domain.Event))
+	// Done returns a channel that's closed when UI should exit
+	// (e.g., user pressed 'q' or Ctrl+C).
+	Done() <-chan struct{}
 }

@@ -1,108 +1,117 @@
+// Package termui implements terminal-based UI using termui library.
 package termui
 
 import (
-	"fmt"
-	"time"
+	"github.com/gizak/termui/v3"
 
-	ui "github.com/gizak/termui/v3"
-
-	"schedtrace-mon/internal/collector"
-	"schedtrace-mon/internal/domain"
+	"github.com/yourusername/projectname/internal/ui"
+	"github.com/yourusername/projectname/internal/ui/termui/widgets"
 )
 
-// Renderer implements the ui.Presenter interface using termui library
-type Renderer struct {
-	layout *Layout
-	events chan domain.Event
-	ticker *time.Ticker
+// TermUI implements ui.Presenter interface using termui library.
+type TermUI struct {
+	table    *widgets.TableWidget
+	barChart *widgets.LRQBarChart
+	grqGauge *widgets.GRQGauge
+	lrqGauge *widgets.LRQGauge
+	plot     *widgets.HistoryPlot
+	info     *widgets.InfoBox
+	grid     *termui.Grid
+	done     chan struct{}
 }
 
-// NewRenderer creates a new terminal UI renderer
-func NewRenderer() *Renderer {
-	return &Renderer{
-		layout: NewLayout(),
-		events: make(chan domain.Event),
-		ticker: time.NewTicker(500 * time.Millisecond),
+// New creates a new terminal UI implementation.
+func New() *TermUI {
+	return &TermUI{
+		done: make(chan struct{}),
 	}
 }
 
-// Init initializes the terminal UI system
-func (r *Renderer) Init() error {
-	if err := ui.Init(); err != nil {
-		return fmt.Errorf("initializing UI: %w", err)
+// Start implements ui.Presenter interface.
+func (t *TermUI) Start() error {
+	if err := termui.Init(); err != nil {
+		return err
 	}
 
-	width, height := ui.TerminalDimensions()
-	r.layout.UpdateSize(width, height)
+	// Initialize widgets
+	t.table = widgets.NewTableWidget()
+	t.barChart = widgets.NewLRQBarChart()
+	t.grqGauge = widgets.NewGRQGauge()
+	t.lrqGauge = widgets.NewLRQGauge()
+	t.plot = widgets.NewHistoryPlot()
+	t.info = widgets.NewInfoBox()
 
-	go r.handleEvents()
+	// Setup grid
+	t.setupGrid()
+
+	// Start event handling
+	go t.handleEvents()
+
 	return nil
 }
 
-// Close performs cleanup of UI resources
-func (r *Renderer) Close() error {
-	r.ticker.Stop()
-	ui.Close()
-	return nil
+// Stop implements ui.Presenter interface.
+func (t *TermUI) Stop() {
+	termui.Close()
 }
 
-// Display shows current metrics from collector
-func (r *Renderer) Display(c collector.Collector) {
-	current := c.GetCurrent()
-	history := c.GetHistory()
-
-	r.updateWidgets(current, history)
-	ui.Render(r.layout.Grid)
+// Done implements ui.Presenter interface.
+func (t *TermUI) Done() <-chan struct{} {
+	return t.done
 }
 
-// HandleEvents sets up UI event handling
-func (r *Renderer) HandleEvents(handler func(domain.Event)) {
-	go func() {
-		for e := range r.events {
-			handler(e)
-		}
-	}()
+// Update implements ui.Presenter interface.
+func (t *TermUI) Update(data ui.UIData) {
+	t.table.Update(data.Current)
+	t.barChart.Update(data.Current.LRQ)
+	t.grqGauge.Update(data.Gauges.GRQ)
+	t.lrqGauge.Update(data.Gauges.LRQ)
+	t.plot.Update(data.History)
+	t.info.Update(data.Current, data.Gauges)
+
+	termui.Render(t.grid)
 }
 
-func (r *Renderer) handleEvents() {
-	uiEvents := ui.PollEvents()
+// setupGrid initializes the terminal UI layout.
+func (t *TermUI) setupGrid() {
+	t.grid = termui.NewGrid()
+	termWidth, termHeight := termui.TerminalDimensions()
+	t.grid.SetRect(0, 0, termWidth, termHeight)
+
+	t.grid.Set(
+		termui.NewRow(0.3,
+			termui.NewCol(0.4, t.table),
+			termui.NewCol(0.6, t.barChart),
+		),
+		termui.NewRow(0.3,
+			termui.NewCol(0.5, t.grqGauge),
+			termui.NewCol(0.5, t.lrqGauge),
+		),
+		termui.NewRow(0.4,
+			termui.NewCol(0.8, t.plot),
+			termui.NewCol(0.2, t.info),
+		),
+	)
+}
+
+// handleEvents processes terminal UI events.
+func (t *TermUI) handleEvents() {
+	uiEvents := termui.PollEvents()
 	for {
 		select {
 		case e := <-uiEvents:
 			switch e.ID {
 			case "q", "<C-c>":
-				r.events <- domain.EventQuit
+				close(t.done)
+				return
 			case "<Resize>":
-				payload := e.Payload.(ui.Resize)
-				r.layout.UpdateSize(payload.Width, payload.Height)
-				r.events <- domain.EventResize
+				payload := e.Payload.(termui.Resize)
+				t.grid.SetRect(0, 0, payload.Width, payload.Height)
+				termui.Clear()
+				termui.Render(t.grid)
 			}
-		case <-r.ticker.C:
-			// UI update tick
+		case <-t.done:
+			return
 		}
 	}
-}
-
-func (r *Renderer) updateWidgets(current domain.SchedData, history []domain.SchedData) {
-	// Update table with current values
-	r.layout.Table.Update(current)
-
-	// Calculate maximums for gauges
-	maxGRQ, maxLRQ := 0, 0
-	var grqVals, lrqVals []float64
-	for _, d := range history {
-		if d.RunQueue > maxGRQ {
-			maxGRQ = d.RunQueue
-		}
-		if d.LrqSum > maxLRQ {
-			maxLRQ = d.LrqSum
-		}
-		grqVals = append(grqVals, float64(d.RunQueue))
-		lrqVals = append(lrqVals, float64(d.LrqSum))
-	}
-
-	// Update all widgets
-	r.layout.Gauges.Update(current.RunQueue, maxGRQ, current.LrqSum, maxLRQ)
-	r.layout.Chart.Update(grqVals, lrqVals)
-	r.layout.InfoPanel.Update(len(history), maxGRQ, maxLRQ)
 }

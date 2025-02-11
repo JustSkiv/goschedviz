@@ -1,6 +1,6 @@
-module schedtrace-mon
+module github.com/yourusername/projectname
 
-go 1.23.4
+go 1.21
 
 require github.com/gizak/termui/v3 v3.1.0
 
