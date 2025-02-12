@@ -1,6 +1,6 @@
 # goschedviz — Go Scheduler Visualizer
 
-*Read this in other languages: [Русский](README.ru.md)*
+*Read this in other languages: [Русский](docs/README.ru.md)*
 
 A terminal-based visualization tool for the Go runtime scheduler. This tool helps understand Go's scheduler behavior by
 providing real-time metrics visualization.
