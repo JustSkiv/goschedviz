@@ -7,6 +7,10 @@ providing real-time metrics visualization.
 
 ![Demo Screenshot Placeholder](demo.gif)
 
+⚠️ **Important Note**: This tool is for educational purposes only. It's designed to help understand Go scheduler
+behavior and should not be used in production environments or critical projects. It may contain bugs and is not
+optimized for performance.
+
 ## Features
 
 - Real-time monitoring of Go scheduler metrics using GODEBUG schedtrace
@@ -81,15 +85,25 @@ func main() {
 goschedviz -target=example.go
 ```
 
-Or try provided examples:
+Or try provided example:
 
 ```bash
-# Simple goroutines example
+# Simple CPU-intensive example with GOMAXPROCS=2 and a lot of goroutines
 goschedviz -target=examples/simple/main.go
-
-# CPU-intensive example
-goschedviz -target=examples/simple2/main.go
 ```
+
+You are welcome to contribute your own demonstrative examples. Examples that show different
+scheduler behaviors are especially valuable (see [Contributing](docs/CONTRIBUTING.md) for details).
+
+Good examples could demonstrate:
+
+- Heavy computation vs I/O workloads
+- Different GOMAXPROCS configurations
+- Network-bound applications
+- Memory-intensive operations
+- Specific scheduler patterns or edge cases
+
+This helps others learn about Go scheduler behavior in different scenarios.
 
 ## Understanding the Output
 
