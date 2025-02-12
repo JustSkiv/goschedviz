@@ -43,7 +43,7 @@ func TestInfoBox_Update(t *testing.T) {
 				}{0, 0},
 			},
 			expectations: []string{
-				"Press 'q' to exit",
+				"Exit: press 'q'",
 				"Last update:", // Just check presence of the prefix
 				"Max GRQ: 0",
 				"Max LRQ (sum): 0",
@@ -67,7 +67,7 @@ func TestInfoBox_Update(t *testing.T) {
 				}{10, 50},
 			},
 			expectations: []string{
-				"Press 'q' to exit",
+				"Exit: press 'q'",
 				"Last update:",
 				"Max GRQ: 20",
 				"Max LRQ (sum): 50",
@@ -91,7 +91,7 @@ func TestInfoBox_Update(t *testing.T) {
 				}{500, 1000},
 			},
 			expectations: []string{
-				"Press 'q' to exit",
+				"Exit: press 'q'",
 				"Last update:",
 				"Max GRQ: 200",
 				"Max LRQ (sum): 1000",

@@ -1,7 +1,6 @@
 package godebug
 
 import (
-	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -35,6 +34,46 @@ func NewParser() *Parser {
 	}
 }
 
+// isValidSnapshot performs additional validation of the scheduler snapshot data.
+// Returns false if any of the validation rules fail.
+func (p *Parser) isValidSnapshot(s domain.SchedulerSnapshot) bool {
+	// Check for valid GOMAXPROCS value
+	if s.GoMaxProcs <= 0 {
+		return false
+	}
+
+	// Verify that idle processors count doesn't exceed total processors
+	if s.IdleProcs > s.GoMaxProcs {
+		return false
+	}
+
+	// Verify that LRQ length matches GOMAXPROCS
+	if len(s.LRQ) != s.GoMaxProcs {
+		return false
+	}
+
+	// Validate thread counts consistency
+	if s.Threads < s.SpinningThreads || s.Threads < s.IdleThreads {
+		return false
+	}
+
+	// Calculate and validate queue totals
+	calculatedSum := s.RunQueue
+	for _, v := range s.LRQ {
+		if v < 0 { // Queue lengths cannot be negative
+			return false
+		}
+		calculatedSum += v
+	}
+
+	// Suspect data detection: all zeros might indicate invalid trace output
+	if calculatedSum == 0 && s.IdleProcs == 0 && s.SpinningThreads == 0 {
+		return false
+	}
+
+	return true
+}
+
 // Parse attempts to parse a single line of schedtrace output.
 // Returns the parsed snapshot and true if successful, or zero value and false if parsing failed.
 func (p *Parser) Parse(line string) (domain.SchedulerSnapshot, bool) {
@@ -46,7 +85,6 @@ func (p *Parser) Parse(line string) (domain.SchedulerSnapshot, bool) {
 	// Parse all integer values
 	timeMs, err := strconv.Atoi(matches[1])
 	if err != nil {
-		fmt.Printf("DEBUG: Failed to parse TimeMs: %v\n", err)
 		return domain.SchedulerSnapshot{}, false
 	}
 
@@ -98,7 +136,7 @@ func (p *Parser) Parse(line string) (domain.SchedulerSnapshot, bool) {
 		}
 	}
 
-	return domain.SchedulerSnapshot{
+	snapshot := domain.SchedulerSnapshot{
 		TimeMs:          timeMs,
 		GoMaxProcs:      gmp,
 		IdleProcs:       idleProcs,
@@ -109,5 +147,12 @@ func (p *Parser) Parse(line string) (domain.SchedulerSnapshot, bool) {
 		RunQueue:        runQ,
 		LRQSum:          sumLRQ,
 		LRQ:             lrqVals,
-	}, true
+	}
+
+	// Perform additional validation of the snapshot
+	if !p.isValidSnapshot(snapshot) {
+		return domain.SchedulerSnapshot{}, false
+	}
+
+	return snapshot, true
 }

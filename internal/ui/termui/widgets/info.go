@@ -34,7 +34,7 @@ func NewInfoBox() *InfoBox {
 // Update refreshes info box with current monitoring state.
 func (i *InfoBox) Update(current ui.CurrentValues, gauges ui.GaugeValues) {
 	i.Text = fmt.Sprintf(
-		"Press 'q' to exit\n"+
+		"Exit: press 'q'\n"+
 			"Last update: %s\n"+
 			"Max GRQ: %d\n"+
 			"Max LRQ (sum): %d\n",
