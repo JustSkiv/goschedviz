@@ -133,7 +133,19 @@ make clean
 
 ## Contributing
 
-Contributions are welcome! Feel free to submit issues and pull requests.
+Contributions are welcome! Whether you're fixing bugs, improving documentation, or adding new features, your help is
+appreciated.
+
+If you're new to open source or Go development, this project is a great place to start. Check out
+our [contribution guide](CONTRIBUTING.md) for:
+
+- Step-by-step instructions for making your first contribution
+- Development environment setup
+- Code style guidelines
+- Types of contributions needed
+- Community guidelines
+
+Don't hesitate to ask questions - we're here to help you learn!
 
 ## Citation
 
