@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use goschedviz in your project or research, please cite it using these metadata."
+authors:
+  - family-names: "Tuzov"
+    given-names: "Nikolay"
+title: "goschedviz"
+version: 0.0.1
+date-released: 2024-02-12
+url: "https://github.com/JustSkiv/goschedviz"
+repository-code: "https://github.com/JustSkiv/goschedviz"
+abstract: "A terminal-based visualization tool for the Go runtime scheduler that provides real-time metrics and insights into scheduler behavior."
+keywords:
+  - go
+  - scheduler
+  - visualization
+  - metrics
+  - terminal-ui
+license: MIT
