@@ -13,7 +13,8 @@ optimized for performance.
 
 ## Features
 
-- Real-time monitoring of Go scheduler metrics using GODEBUG schedtrace
+- Real-time monitoring of Go scheduler metrics
+  using [GODEBUG schedtrace](https://pkg.go.dev/github.com/maximecaron/gotraining/topics/profiling/godebug/schedtrace)
 - Terminal UI with multiple visualization widgets:
     - Current scheduler values table
     - Local Run Queue bar chart
