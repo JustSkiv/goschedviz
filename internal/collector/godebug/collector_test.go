@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/yourusername/projectname/internal/domain"
+	"github.com/JustSkiv/goschedviz/internal/domain"
 )
 
 // TestProgram is a simple Go program that will generate GODEBUG schedtrace output.

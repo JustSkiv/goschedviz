@@ -4,7 +4,7 @@ package collector
 import (
 	"context"
 
-	"github.com/yourusername/projectname/internal/domain"
+	"github.com/JustSkiv/goschedviz/internal/domain"
 )
 
 // Collector defines interface for gathering scheduler metrics from various sources.

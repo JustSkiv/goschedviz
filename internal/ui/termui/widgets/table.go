@@ -6,7 +6,7 @@ import (
 	tui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
 
-	"github.com/yourusername/projectname/internal/ui"
+	"github.com/JustSkiv/goschedviz/internal/ui"
 )
 
 // TableWidget displays current scheduler values.

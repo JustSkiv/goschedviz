@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/yourusername/projectname/internal/domain"
+	"github.com/JustSkiv/goschedviz/internal/domain"
 )
 
 // Parser handles parsing of GODEBUG schedtrace output lines.

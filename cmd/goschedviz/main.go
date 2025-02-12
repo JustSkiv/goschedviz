@@ -10,10 +10,10 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/yourusername/projectname/internal/collector/godebug"
-	"github.com/yourusername/projectname/internal/domain"
-	"github.com/yourusername/projectname/internal/ui"
-	"github.com/yourusername/projectname/internal/ui/termui"
+	"github.com/JustSkiv/goschedviz/internal/collector/godebug"
+	"github.com/JustSkiv/goschedviz/internal/domain"
+	"github.com/JustSkiv/goschedviz/internal/ui"
+	"github.com/JustSkiv/goschedviz/internal/ui/termui"
 )
 
 var (

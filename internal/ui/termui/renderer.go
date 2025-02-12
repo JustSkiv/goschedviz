@@ -4,8 +4,8 @@ package termui
 import (
 	"github.com/gizak/termui/v3"
 
-	"github.com/yourusername/projectname/internal/ui"
-	"github.com/yourusername/projectname/internal/ui/termui/widgets"
+	"github.com/JustSkiv/goschedviz/internal/ui"
+	"github.com/JustSkiv/goschedviz/internal/ui/termui/widgets"
 )
 
 // TermUI implements ui.Presenter interface using termui library.

@@ -9,7 +9,7 @@ import (
 
 	tui "github.com/gizak/termui/v3"
 
-	"github.com/yourusername/projectname/internal/ui"
+	"github.com/JustSkiv/goschedviz/internal/ui"
 )
 
 // InfoBox displays additional monitoring information.

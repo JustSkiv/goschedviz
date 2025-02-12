@@ -5,7 +5,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/yourusername/projectname/internal/domain"
+	"github.com/JustSkiv/goschedviz/internal/domain"
 )
 
 // Collector is a mock implementation of collector.Collector interface.

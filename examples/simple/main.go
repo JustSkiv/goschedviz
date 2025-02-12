@@ -5,11 +5,17 @@ import (
 )
 
 func main() {
-	// Simple program that creates some scheduler load
 	for i := 0; i < 1000; i++ {
-		go func() {
-			time.Sleep(time.Second)
-		}()
+		go func(id int) {
+			for {
+				// Активная работа вместо сна
+				for i := 0; i < 10000000; i++ {
+					_ = i * i
+				}
+				time.Sleep(time.Millisecond) // небольшая пауза
+			}
+		}(i)
 	}
-	time.Sleep(10 * time.Second)
+
+	time.Sleep(1 * time.Minute)
 }

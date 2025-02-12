@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/yourusername/projectname/internal/domain"
+	"github.com/JustSkiv/goschedviz/internal/domain"
 )
 
 // Collector implements collector.Collector interface for GODEBUG schedtrace output.

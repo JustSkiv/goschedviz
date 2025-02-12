@@ -1,0 +1,11 @@
+# Binary directory
+/bin/
+
+# IDE directories
+.idea/
+.vscode/
+
+# OS-specific files
+.DS_Store
+*.swp
+*.swo
