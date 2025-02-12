@@ -6,10 +6,6 @@
 [![Go Version](https://img.shields.io/github/go-mod/go-version/JustSkiv/goschedviz)](https://go.dev/doc/devel/release)
 [![codecov](https://codecov.io/gh/JustSkiv/goschedviz/branch/main/graph/badge.svg)](https://app.codecov.io/gh/JustSkiv/goschedviz)
 
-
-
-
-
 *Read this in other languages: [Русский](docs/README.ru.md)*
 
 A terminal-based visualization tool for the Go runtime scheduler. This tool helps understand Go's scheduler behavior by
