@@ -1,5 +1,14 @@
 # goschedviz — Go Scheduler Visualizer
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/JustSkiv/goschedviz.svg)](https://pkg.go.dev/github.com/JustSkiv/goschedviz)
+[![Go Report Card](https://goreportcard.com/badge/github.com/JustSkiv/goschedviz)](https://goreportcard.com/report/github.com/JustSkiv/goschedviz)
+[![Release](https://img.shields.io/github/release/JustSkiv/goschedviz.svg?style=flat-square)](https://github.com/JustSkiv/goschedviz/releases)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/JustSkiv/goschedviz)](https://go.dev/doc/devel/release)
+[![License](https://img.shields.io/github/license/JustSkiv/goschedviz)](https://github.com/JustSkiv/goschedviz/blob/main/LICENSE)
+
+
+
+
 *Read this in other languages: [Русский](docs/README.ru.md)*
 
 A terminal-based visualization tool for the Go runtime scheduler. This tool helps understand Go's scheduler behavior by
