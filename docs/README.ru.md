@@ -1,5 +1,6 @@
 # goschedviz — Визуализация работы планировщика Go
 
+[![Build Status](https://github.com/JustSkiv/goschedviz/workflows/build/badge.svg)](https://github.com/JustSkiv/goschedviz/actions)
 [![Go Reference](https://pkg.go.dev/badge/github.com/JustSkiv/goschedviz.svg)](https://pkg.go.dev/github.com/JustSkiv/goschedviz)
 [![Go Report Card](https://goreportcard.com/badge/github.com/JustSkiv/goschedviz)](https://goreportcard.com/report/github.com/JustSkiv/goschedviz)
 [![Release](https://img.shields.io/github/release/JustSkiv/goschedviz.svg?style=flat-square)](https://github.com/JustSkiv/goschedviz/releases)
