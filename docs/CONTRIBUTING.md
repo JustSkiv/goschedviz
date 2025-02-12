@@ -1,5 +1,7 @@
 # Contributing to goschedviz
 
+*[Версия на русском](CONTRIBUTING.ru.md)*
+
 First off, thank you for considering contributing to goschedviz! This is a great opportunity to learn about Go scheduler
 internals and get experience with open source development.
 
@@ -7,6 +9,8 @@ _Remember: every expert was once a beginner. Don't hesitate to ask questions and
 ❤️_
 
 ## Before You Start Contributing
+
+First, please read [README](../README.md) to understand the project.
 
 To save time and avoid duplicate efforts, please follow these steps:
 
