@@ -2,7 +2,9 @@ package termui
 
 import (
 	"testing"
+	"time"
 
+	"github.com/gizak/termui/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -38,14 +40,11 @@ func TestTermUI_DoneChannel(t *testing.T) {
 }
 
 func TestTermUI_StartStop(t *testing.T) {
-	term := New()
+	term := newWithTerminal(newTestTerminal())
 
 	// Test Start
 	err := term.Start()
-	if err != nil {
-		t.Skipf("Skipping test in non-terminal environment: %v", err)
-		return
-	}
+	require.NoError(t, err)
 
 	// Ensure cleanup
 	defer term.Stop()
@@ -61,12 +60,9 @@ func TestTermUI_StartStop(t *testing.T) {
 }
 
 func TestTermUI_Update(t *testing.T) {
-	term := New()
+	term := newWithTerminal(newTestTerminal())
 	err := term.Start()
-	if err != nil {
-		t.Skipf("Skipping test in non-terminal environment: %v", err)
-		return
-	}
+	require.NoError(t, err)
 	defer term.Stop()
 
 	// Test various data scenarios
@@ -78,8 +74,8 @@ func TestTermUI_Update(t *testing.T) {
 			name: "empty data",
 			data: ui.UIData{
 				Gauges: ui.GaugeValues{
-					GRQ: struct{ Current, Max int }{0, 1}, // Установили Max = 1 вместо 0
-					LRQ: struct{ Current, Max int }{0, 1}, // Установили Max = 1 вместо 0
+					GRQ: struct{ Current, Max int }{0, 1},
+					LRQ: struct{ Current, Max int }{0, 1},
 				},
 			},
 		},
@@ -148,35 +144,64 @@ func TestTermUI_Update(t *testing.T) {
 	}
 }
 
-func TestTermUI_GridLayout(t *testing.T) {
-	term := New()
+func TestTermUI_Events(t *testing.T) {
+	mock := newTestTerminal()
+	term := newWithTerminal(mock)
+
 	err := term.Start()
-	if err != nil {
-		t.Skipf("Skipping test in non-terminal environment: %v", err)
-		return
+	require.NoError(t, err)
+
+	// Test quit event
+	done := make(chan struct{})
+	go func() {
+		mock.SendEvent(termui.Event{
+			ID: "q",
+		})
+		close(done)
+	}()
+
+	select {
+	case <-term.Done():
+		// Expected - UI should close
+	case <-time.After(time.Second):
+		t.Fatal("Quit event was not processed")
 	}
-	defer term.Stop()
 
-	// Check that grid is initialized
-	require.NotNil(t, term.grid, "Grid should be initialized")
+	<-done
+	term.Stop()
+}
 
-	// Since we can't directly access grid internals, we'll just verify
-	// that the grid exists and basic UI elements are present
-	assert.NotNil(t, term.table, "Table widget should be present in grid")
-	assert.NotNil(t, term.barChart, "Bar chart widget should be present in grid")
-	assert.NotNil(t, term.grqGauge, "GRQ gauge should be present in grid")
-	assert.NotNil(t, term.lrqGauge, "LRQ gauge should be present in grid")
-	assert.NotNil(t, term.plot, "Plot widget should be present in grid")
-	assert.NotNil(t, term.info, "Info widget should be present in grid")
+func TestTermUI_ResizeEvent(t *testing.T) {
+	mock := newTestTerminal()
+	term := newWithTerminal(mock)
+
+	err := term.Start()
+	require.NoError(t, err)
+
+	// Test resize event
+	done := make(chan struct{})
+	go func() {
+		mock.SendEvent(termui.Event{
+			ID: "<Resize>",
+			Payload: termui.Resize{
+				Width:  120,
+				Height: 50,
+			},
+		})
+		close(done)
+	}()
+
+	// Give time for event processing
+	time.Sleep(100 * time.Millisecond)
+	<-done
+	term.Stop()
 }
 
 func TestTermUI_LargeDataSet(t *testing.T) {
-	term := New()
+	term := newWithTerminal(newTestTerminal())
+
 	err := term.Start()
-	if err != nil {
-		t.Skipf("Skipping test in non-terminal environment: %v", err)
-		return
-	}
+	require.NoError(t, err)
 	defer term.Stop()
 
 	// Create large test data
@@ -186,7 +211,7 @@ func TestTermUI_LargeDataSet(t *testing.T) {
 			NumP:       32,
 			LRQ:        make([]int, 32),
 		},
-		Gauges: ui.GaugeValues{ // Добавили значения для gauge
+		Gauges: ui.GaugeValues{
 			GRQ: struct{ Current, Max int }{0, 100},
 			LRQ: struct{ Current, Max int }{0, 100},
 		},

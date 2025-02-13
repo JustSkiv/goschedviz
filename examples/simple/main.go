@@ -1,3 +1,4 @@
+//gocoverage:ignore
 package main
 
 import (
