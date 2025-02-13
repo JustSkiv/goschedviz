@@ -29,6 +29,13 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: JustSkiv/goschedviz
 
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.COVERALLS_REPO_TOKEN }}
+          file: coverage.txt
+          format: golang
+
 #      - name: Upload coverage to Coveralls
 #        uses: shogo82148/actions-goveralls@v1
 #        with:
