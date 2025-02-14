@@ -2,10 +2,12 @@
 
 [![Build Status](https://github.com/JustSkiv/goschedviz/workflows/build/badge.svg)](https://github.com/JustSkiv/goschedviz/actions)
 [![Go Reference](https://pkg.go.dev/badge/github.com/JustSkiv/goschedviz.svg)](https://pkg.go.dev/github.com/JustSkiv/goschedviz)
-[![Go Report Card](https://goreportcard.com/badge/github.com/JustSkiv/goschedviz)](https://goreportcard.com/report/github.com/JustSkiv/goschedviz)
-[![Release](https://img.shields.io/github/release/JustSkiv/goschedviz.svg?style=flat-square)](https://github.com/JustSkiv/goschedviz/releases)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/JustSkiv/goschedviz)](https://go.dev/doc/devel/release)
+[![Release](https://img.shields.io/github/release/JustSkiv/goschedviz.svg?style=flat-square)](https://github.com/JustSkiv/goschedviz/releases)
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/JustSkiv/goschedviz)](https://goreportcard.com/report/github.com/JustSkiv/goschedviz)
 [![codecov](https://codecov.io/gh/JustSkiv/goschedviz/branch/main/graph/badge.svg)](https://app.codecov.io/gh/JustSkiv/goschedviz)
+[![Coverage Status](https://coveralls.io/repos/github/JustSkiv/goschedviz/badge.svg?branch=main)](https://coveralls.io/github/JustSkiv/goschedviz?branch=main)
 
 [English version](../README.md)
 
