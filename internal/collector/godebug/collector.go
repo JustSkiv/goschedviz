@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 
 	"github.com/JustSkiv/goschedviz/internal/domain"
 )
@@ -67,21 +68,47 @@ func (c *Collector) Start(ctx context.Context) (<-chan domain.SchedulerSnapshot,
 
 	snapshots := make(chan domain.SchedulerSnapshot)
 
-	c.cmd = exec.Command("go", "run", c.path)
+	// Get temporary binary path
+	tmpBinary := "tmp_program"
+	if runtime.GOOS == "windows" {
+		tmpBinary += ".exe"
+	}
+
+	// First compile the program
+	buildCmd := exec.Command("go", "build", "-o", tmpBinary, c.path)
+	if err := buildCmd.Run(); err != nil {
+		return nil, fmt.Errorf("failed to build program: %w", err)
+	}
+
+	// Ensure binary cleanup
+	cleanupDone := make(chan struct{})
+	go func() {
+		<-ctx.Done()
+		os.Remove(tmpBinary)
+		close(cleanupDone)
+	}()
+
+	// Then run the compiled binary
+	c.cmd = exec.Command("./" + tmpBinary)
 	c.cmd.Env = append(os.Environ(), fmt.Sprintf("GODEBUG=schedtrace=%d", c.period))
 
 	stderr, err := c.cmd.StderrPipe()
 	if err != nil {
+		os.Remove(tmpBinary)
 		return nil, fmt.Errorf("failed to get stderr pipe: %w", err)
 	}
 
 	if err := c.cmd.Start(); err != nil {
+		os.Remove(tmpBinary)
 		return nil, fmt.Errorf("failed to start process: %w", err)
 	}
 
 	go func() {
 		defer close(snapshots)
 		defer c.cmd.Process.Kill()
+		defer func() {
+			<-cleanupDone // Wait for cleanup to complete
+		}()
 
 		scanner := bufio.NewScanner(stderr)
 		parser := NewParser()
@@ -95,7 +122,6 @@ func (c *Collector) Start(ctx context.Context) (<-chan domain.SchedulerSnapshot,
 			default:
 				line := scanner.Text()
 				if snapshot, ok := parser.Parse(line); ok {
-					// Only send if parsing succeeded
 					select {
 					case snapshots <- snapshot:
 					case <-ctx.Done():
@@ -108,7 +134,6 @@ func (c *Collector) Start(ctx context.Context) (<-chan domain.SchedulerSnapshot,
 		}
 
 		if err := scanner.Err(); err != nil {
-			// Log error but don't block
 			fmt.Fprintf(os.Stderr, "Error reading stderr: %v\n", err)
 		}
 	}()
