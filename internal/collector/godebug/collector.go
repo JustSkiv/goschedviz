@@ -60,7 +60,7 @@ func (c *Collector) validateConfig() error {
 }
 
 // Start implements collector.Collector interface.
-func (c *Collector) Start(ctx context.Context) (<-chan domain.SchedulerSnapshot, error) {
+func (c *Collector) Start(ctx context.Context) (_ <-chan domain.SchedulerSnapshot, err error) {
 	// Validate configuration
 	if err := c.validateConfig(); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
@@ -74,19 +74,18 @@ func (c *Collector) Start(ctx context.Context) (<-chan domain.SchedulerSnapshot,
 		tmpBinary += ".exe"
 	}
 
+	// Ensure cleanup in case of errors during setup
+	defer func() {
+		if err != nil {
+			os.Remove(tmpBinary)
+		}
+	}()
+
 	// First compile the program
 	buildCmd := exec.Command("go", "build", "-o", tmpBinary, c.path)
 	if err := buildCmd.Run(); err != nil {
 		return nil, fmt.Errorf("failed to build program: %w", err)
 	}
-
-	// Ensure binary cleanup
-	cleanupDone := make(chan struct{})
-	go func() {
-		<-ctx.Done()
-		os.Remove(tmpBinary)
-		close(cleanupDone)
-	}()
 
 	// Then run the compiled binary
 	c.cmd = exec.Command("./" + tmpBinary)
@@ -94,21 +93,17 @@ func (c *Collector) Start(ctx context.Context) (<-chan domain.SchedulerSnapshot,
 
 	stderr, err := c.cmd.StderrPipe()
 	if err != nil {
-		os.Remove(tmpBinary)
 		return nil, fmt.Errorf("failed to get stderr pipe: %w", err)
 	}
 
 	if err := c.cmd.Start(); err != nil {
-		os.Remove(tmpBinary)
 		return nil, fmt.Errorf("failed to start process: %w", err)
 	}
 
 	go func() {
 		defer close(snapshots)
 		defer c.cmd.Process.Kill()
-		defer func() {
-			<-cleanupDone // Wait for cleanup to complete
-		}()
+		defer os.Remove(tmpBinary)
 
 		scanner := bufio.NewScanner(stderr)
 		parser := NewParser()
