@@ -42,8 +42,11 @@ func NewHistoryPlot() *HistoryPlot {
 // Update updates plot with new historical values.
 // Converts integer metrics to float64 for plotting.
 func (p *HistoryPlot) Update(history []ui.HistoricalValues) {
-	if len(history) == 0 {
-		// If there is no data, keep initial values
+	// Для корректной отрисовки графика нужно минимум 2 точки
+	if len(history) < 2 {
+		// Если у нас меньше 2 точек, используем начальные значения
+		p.Data[0] = []float64{0, 0}
+		p.Data[1] = []float64{0, 0}
 		return
 	}
 
