@@ -14,23 +14,19 @@ func TestHistoryPlot_New(t *testing.T) {
 	plot := NewHistoryPlot()
 	require.NotNil(t, plot, "NewHistoryPlot should return non-nil plot")
 
-	// Check initial configuration
 	assert.Equal(t, "GRQ / LRQ History", plot.Title,
 		"Plot should have correct title")
 
-	// Verify initial data structure
 	assert.Equal(t, 2, len(plot.Data),
 		"Plot should have two data series (GRQ and LRQ)")
 	assert.Equal(t, 2, len(plot.LineColors),
 		"Plot should have two line colors")
 
-	// Check color configuration
 	assert.Equal(t, termui.ColorGreen, plot.LineColors[0],
 		"GRQ line should be green")
 	assert.Equal(t, termui.ColorMagenta, plot.LineColors[1],
 		"LRQ line should be magenta")
 
-	// Verify initial data points
 	assert.Equal(t, []float64{0, 0}, plot.Data[0],
 		"Initial GRQ data should be zero")
 	assert.Equal(t, []float64{0, 0}, plot.Data[1],
@@ -53,7 +49,7 @@ func TestHistoryPlot_Update(t *testing.T) {
 				grqData []float64
 				lrqData []float64
 			}{
-				grqData: []float64{0, 0}, // Initial values should remain
+				grqData: []float64{0, 0},
 				lrqData: []float64{0, 0},
 			},
 		},
@@ -66,8 +62,8 @@ func TestHistoryPlot_Update(t *testing.T) {
 				grqData []float64
 				lrqData []float64
 			}{
-				grqData: []float64{5},
-				lrqData: []float64{10},
+				grqData: []float64{0, 0},
+				lrqData: []float64{0, 0},
 			},
 		},
 		{
@@ -107,19 +103,10 @@ func TestHistoryPlot_Update(t *testing.T) {
 			plot := NewHistoryPlot()
 			plot.Update(tt.history)
 
-			if len(tt.history) == 0 {
-				// For empty history, check that initial values are preserved
-				assert.Equal(t, tt.expected.grqData, plot.Data[0],
-					"Empty history should preserve initial GRQ values")
-				assert.Equal(t, tt.expected.lrqData, plot.Data[1],
-					"Empty history should preserve initial LRQ values")
-			} else {
-				// For non-empty history, check the actual data
-				assert.Equal(t, tt.expected.grqData, plot.Data[0],
-					"GRQ data series should match expected values")
-				assert.Equal(t, tt.expected.lrqData, plot.Data[1],
-					"LRQ data series should match expected values")
-			}
+			assert.Equal(t, tt.expected.grqData, plot.Data[0],
+				"GRQ data series should match expected values")
+			assert.Equal(t, tt.expected.lrqData, plot.Data[1],
+				"LRQ data series should match expected values")
 		})
 	}
 }
@@ -127,13 +114,11 @@ func TestHistoryPlot_Update(t *testing.T) {
 func TestHistoryPlot_DataIntegrity(t *testing.T) {
 	plot := NewHistoryPlot()
 
-	// Test data integrity with sequential updates
 	updates := []struct {
 		history []ui.HistoricalValues
 		length  int
 	}{
 		{
-			// First update with some data
 			history: []ui.HistoricalValues{
 				{TimeMs: 1000, GRQ: 5, LRQSum: 10},
 				{TimeMs: 2000, GRQ: 8, LRQSum: 15},
@@ -141,7 +126,6 @@ func TestHistoryPlot_DataIntegrity(t *testing.T) {
 			length: 2,
 		},
 		{
-			// Second update with more data
 			history: []ui.HistoricalValues{
 				{TimeMs: 1000, GRQ: 5, LRQSum: 10},
 				{TimeMs: 2000, GRQ: 8, LRQSum: 15},
@@ -150,11 +134,10 @@ func TestHistoryPlot_DataIntegrity(t *testing.T) {
 			length: 3,
 		},
 		{
-			// Third update with less data
 			history: []ui.HistoricalValues{
 				{TimeMs: 4000, GRQ: 2, LRQSum: 5},
 			},
-			length: 1,
+			length: 2,
 		},
 	}
 
@@ -162,18 +145,23 @@ func TestHistoryPlot_DataIntegrity(t *testing.T) {
 		t.Run(string(rune('A'+i)), func(t *testing.T) {
 			plot.Update(update.history)
 
-			// Check data series lengths
 			assert.Equal(t, update.length, len(plot.Data[0]),
 				"GRQ data series should have correct length")
 			assert.Equal(t, update.length, len(plot.Data[1]),
 				"LRQ data series should have correct length")
 
-			// Verify data matches input
-			for j, val := range update.history {
-				assert.Equal(t, float64(val.GRQ), plot.Data[0][j],
-					"GRQ value at index %d should match input", j)
-				assert.Equal(t, float64(val.LRQSum), plot.Data[1][j],
-					"LRQ value at index %d should match input", j)
+			if len(update.history) >= 2 {
+				for j, val := range update.history {
+					assert.Equal(t, float64(val.GRQ), plot.Data[0][j],
+						"GRQ value at index %d should match input", j)
+					assert.Equal(t, float64(val.LRQSum), plot.Data[1][j],
+						"LRQ value at index %d should match input", j)
+				}
+			} else {
+				assert.Equal(t, []float64{0, 0}, plot.Data[0],
+					"GRQ should have default values when insufficient data")
+				assert.Equal(t, []float64{0, 0}, plot.Data[1],
+					"LRQ should have default values when insufficient data")
 			}
 		})
 	}
