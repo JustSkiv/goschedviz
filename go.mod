@@ -5,6 +5,7 @@ go 1.23
 require (
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/stretchr/testify v1.10.0
+	golang.org/x/sys v0.30.0
 )
 
 require (

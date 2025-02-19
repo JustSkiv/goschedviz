@@ -29,18 +29,28 @@ type CurrentValues struct {
 
 // HistoricalValues contains metrics used for plotting history.
 type HistoricalValues struct {
-	TimeMs int
-	GRQ    int
-	LRQSum int
+	TimeMs    int
+	GRQ       int
+	LRQSum    int
+	IdleProcs int
+	Threads   int
 }
 
-// GaugeValues contains data for GRQ and LRQ gauges.
+// GaugeValues contains data for all gauges
 type GaugeValues struct {
 	GRQ struct {
 		Current int
 		Max     int
 	}
 	LRQ struct {
+		Current int
+		Max     int
+	}
+	IdleProcs struct {
+		Current int
+		Max     int
+	}
+	Threads struct {
 		Current int
 		Max     int
 	}

@@ -74,8 +74,10 @@ func TestTermUI_Update(t *testing.T) {
 			name: "empty data",
 			data: ui.UIData{
 				Gauges: ui.GaugeValues{
-					GRQ: struct{ Current, Max int }{0, 1},
-					LRQ: struct{ Current, Max int }{0, 1},
+					GRQ:       struct{ Current, Max int }{0, 1},
+					LRQ:       struct{ Current, Max int }{0, 1},
+					Threads:   struct{ Current, Max int }{0, 1},
+					IdleProcs: struct{ Current, Max int }{0, 1},
 				},
 			},
 		},
@@ -101,8 +103,10 @@ func TestTermUI_Update(t *testing.T) {
 					{TimeMs: 1000, GRQ: 5, LRQSum: 10},
 				},
 				Gauges: ui.GaugeValues{
-					GRQ: struct{ Current, Max int }{5, 10},
-					LRQ: struct{ Current, Max int }{10, 20},
+					GRQ:       struct{ Current, Max int }{5, 10},
+					LRQ:       struct{ Current, Max int }{10, 20},
+					Threads:   struct{ Current, Max int }{8, 16},
+					IdleProcs: struct{ Current, Max int }{2, 4},
 				},
 			},
 		},
@@ -128,8 +132,10 @@ func TestTermUI_Update(t *testing.T) {
 					{TimeMs: 5000, GRQ: 100, LRQSum: 500},
 				},
 				Gauges: ui.GaugeValues{
-					GRQ: struct{ Current, Max int }{100, 200},
-					LRQ: struct{ Current, Max int }{500, 1000},
+					GRQ:       struct{ Current, Max int }{100, 200},
+					LRQ:       struct{ Current, Max int }{500, 1000},
+					Threads:   struct{ Current, Max int }{64, 128},
+					IdleProcs: struct{ Current, Max int }{0, 32},
 				},
 			},
 		},
@@ -212,8 +218,10 @@ func TestTermUI_LargeDataSet(t *testing.T) {
 			LRQ:        make([]int, 32),
 		},
 		Gauges: ui.GaugeValues{
-			GRQ: struct{ Current, Max int }{0, 100},
-			LRQ: struct{ Current, Max int }{0, 100},
+			GRQ:       struct{ Current, Max int }{0, 100},
+			LRQ:       struct{ Current, Max int }{0, 100},
+			Threads:   struct{ Current, Max int }{0, 100},
+			IdleProcs: struct{ Current, Max int }{0, 100},
 		},
 	}
 

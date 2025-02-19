@@ -53,15 +53,17 @@ func (t *testTerminal) SendEvent(e termui.Event) {
 
 // TermUI implements ui.Presenter interface using termui library.
 type TermUI struct {
-	table    *widgets.TableWidget
-	barChart *widgets.LRQBarChart
-	grqGauge *widgets.GRQGauge
-	lrqGauge *widgets.LRQGauge
-	plot     *widgets.HistoryPlot
-	info     *widgets.InfoBox
-	grid     *termui.Grid
-	done     chan struct{}
-	term     terminalAPI
+	table          *widgets.TableWidget
+	barChart       *widgets.LRQBarChart
+	grqGauge       *widgets.GRQGauge
+	lrqGauge       *widgets.LRQGauge
+	threadsGauge   *widgets.ThreadsGauge
+	idleProcsGauge *widgets.IdleProcsGauge
+	plot           *widgets.HistoryPlot
+	info           *widgets.InfoBox
+	grid           *termui.Grid
+	done           chan struct{}
+	term           terminalAPI
 }
 
 // New creates a new terminal UI implementation.
@@ -91,6 +93,8 @@ func (t *TermUI) Start() error {
 	t.barChart = widgets.NewLRQBarChart()
 	t.grqGauge = widgets.NewGRQGauge()
 	t.lrqGauge = widgets.NewLRQGauge()
+	t.threadsGauge = widgets.NewThreadsGauge()
+	t.idleProcsGauge = widgets.NewIdleProcsGauge()
 	t.plot = widgets.NewHistoryPlot()
 	t.info = widgets.NewInfoBox()
 
@@ -119,6 +123,8 @@ func (t *TermUI) Update(data ui.UIData) {
 	t.barChart.Update(data.Current.LRQ)
 	t.grqGauge.Update(data.Gauges.GRQ)
 	t.lrqGauge.Update(data.Gauges.LRQ)
+	t.threadsGauge.Update(data.Gauges.Threads)
+	t.idleProcsGauge.Update(data.Gauges.IdleProcs)
 	t.plot.Update(data.History)
 	t.info.Update(data.Current, data.Gauges)
 
@@ -137,8 +143,14 @@ func (t *TermUI) setupGrid() {
 			termui.NewCol(0.6, t.barChart),
 		),
 		termui.NewRow(0.3,
-			termui.NewCol(0.5, t.grqGauge),
-			termui.NewCol(0.5, t.lrqGauge),
+			termui.NewCol(0.5,
+				termui.NewRow(0.5, t.threadsGauge),
+				termui.NewRow(0.5, t.idleProcsGauge),
+			),
+			termui.NewCol(0.5,
+				termui.NewRow(0.5, t.lrqGauge),
+				termui.NewRow(0.5, t.grqGauge),
+			),
 		),
 		termui.NewRow(0.4,
 			termui.NewCol(0.8, t.plot),

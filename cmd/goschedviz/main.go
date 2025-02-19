@@ -16,12 +16,12 @@ import (
 	"github.com/JustSkiv/goschedviz/internal/ui/termui"
 )
 
-var (
-	targetPath = flag.String("target", "", "Path to Go program to monitor")
-	period     = flag.Int("period", 1000, "GODEBUG schedtrace period in milliseconds")
-)
-
 func main() {
+	var (
+		targetPath = flag.String("target", "", "Path to Go program to monitor")
+		period     = flag.Int("period", 1000, "GODEBUG schedtrace period in milliseconds")
+	)
+
 	flag.Parse()
 
 	if *targetPath == "" {
@@ -92,7 +92,7 @@ func main() {
 // convertToUIData converts domain data to UI-specific format
 func convertToUIData(latest domain.SchedulerSnapshot, history []domain.SchedulerSnapshot) ui.UIData {
 	// Calculate max values for gauges
-	maxGRQ, maxLRQ := 0, 0
+	maxGRQ, maxLRQ, maxThreads, maxIdleProcs := 0, 0, 0, 0
 	histValues := make([]ui.HistoricalValues, len(history))
 
 	for i, h := range history {
@@ -102,11 +102,19 @@ func convertToUIData(latest domain.SchedulerSnapshot, history []domain.Scheduler
 		if h.LRQSum > maxLRQ {
 			maxLRQ = h.LRQSum
 		}
+		if h.Threads > maxThreads {
+			maxThreads = h.Threads
+		}
+		if h.IdleProcs > maxIdleProcs {
+			maxIdleProcs = h.IdleProcs
+		}
 
 		histValues[i] = ui.HistoricalValues{
-			TimeMs: h.TimeMs,
-			GRQ:    h.RunQueue,
-			LRQSum: h.LRQSum,
+			TimeMs:    h.TimeMs,
+			GRQ:       h.RunQueue,
+			LRQSum:    h.LRQSum,
+			IdleProcs: h.IdleProcs,
+			Threads:   h.Threads,
 		}
 	}
 
@@ -116,6 +124,12 @@ func convertToUIData(latest domain.SchedulerSnapshot, history []domain.Scheduler
 	}
 	if maxLRQ == 0 {
 		maxLRQ = 1
+	}
+	if maxThreads == 0 {
+		maxThreads = 1
+	}
+	if maxIdleProcs == 0 {
+		maxIdleProcs = 1
 	}
 
 	return ui.UIData{
@@ -147,6 +161,20 @@ func convertToUIData(latest domain.SchedulerSnapshot, history []domain.Scheduler
 			}{
 				Current: latest.LRQSum,
 				Max:     maxLRQ,
+			},
+			Threads: struct {
+				Current int
+				Max     int
+			}{
+				Current: latest.Threads,
+				Max:     maxThreads,
+			},
+			IdleProcs: struct {
+				Current int
+				Max     int
+			}{
+				Current: latest.IdleProcs,
+				Max:     maxIdleProcs,
 			},
 		},
 	}

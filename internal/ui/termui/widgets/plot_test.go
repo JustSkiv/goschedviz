@@ -17,20 +17,25 @@ func TestHistoryPlot_New(t *testing.T) {
 	assert.Equal(t, "GRQ / LRQ History", plot.Title,
 		"Plot should have correct title")
 
-	assert.Equal(t, 2, len(plot.Data),
+	assert.Equal(t, 4, len(plot.Data),
 		"Plot should have two data series (GRQ and LRQ)")
-	assert.Equal(t, 2, len(plot.LineColors),
+	assert.Equal(t, 4, len(plot.LineColors),
 		"Plot should have two line colors")
 
 	assert.Equal(t, termui.ColorGreen, plot.LineColors[0],
 		"GRQ line should be green")
 	assert.Equal(t, termui.ColorMagenta, plot.LineColors[1],
 		"LRQ line should be magenta")
+	assert.Equal(t, termui.ColorYellow, plot.LineColors[2],
+		"IdleProcs line should be yellow")
+	assert.Equal(t, termui.ColorRed, plot.LineColors[3],
+		"Threads line should be red")
 
-	assert.Equal(t, []float64{0, 0}, plot.Data[0],
-		"Initial GRQ data should be zero")
-	assert.Equal(t, []float64{0, 0}, plot.Data[1],
-		"Initial LRQ data should be zero")
+	for i := 0; i < 4; i++ {
+		assert.Equal(t, []float64{0, 0}, plot.Data[i],
+			"Initial data should be zero")
+	}
+
 }
 
 func TestHistoryPlot_Update(t *testing.T) {

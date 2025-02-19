@@ -13,6 +13,8 @@ import (
 // It shows two lines:
 // - Green line for Global Run Queue history
 // - Magenta line for total Local Run Queues history
+// - Yellow line for IdleProcs history
+// - Blue line for Threads history
 type HistoryPlot struct {
 	*widgets.Plot
 }
@@ -25,13 +27,19 @@ func NewHistoryPlot() *HistoryPlot {
 	p.Title = "GRQ / LRQ History"
 
 	// Initialize with default values
-	p.DataLabels = make([]string, 2)
-	p.Data = make([][]float64, 2)
-	p.Data[0] = []float64{0, 0} // At least two values are required for plotting
-	p.Data[1] = []float64{0, 0}
-	p.LineColors = make([]tui.Color, 2)
-	p.LineColors[0] = tui.ColorGreen
-	p.LineColors[1] = tui.ColorMagenta
+	p.DataLabels = make([]string, 4)
+	p.Data = make([][]float64, 4)
+
+	for i := 0; i < 4; i++ {
+		p.Data[i] = []float64{0, 0}
+	}
+
+	p.LineColors = []tui.Color{
+		tui.ColorGreen,   // GRQ
+		tui.ColorMagenta, // LRQ
+		tui.ColorYellow,  // IdleProcs
+		tui.ColorRed,     // Threads
+	}
 
 	p.AxesColor = tui.ColorWhite
 	p.DrawDirection = widgets.DrawLeft
@@ -42,22 +50,28 @@ func NewHistoryPlot() *HistoryPlot {
 // Update updates plot with new historical values.
 // Converts integer metrics to float64 for plotting.
 func (p *HistoryPlot) Update(history []ui.HistoricalValues) {
-	// Для корректной отрисовки графика нужно минимум 2 точки
 	if len(history) < 2 {
-		// Если у нас меньше 2 точек, используем начальные значения
-		p.Data[0] = []float64{0, 0}
-		p.Data[1] = []float64{0, 0}
+		for i := 0; i < 4; i++ {
+			p.Data[i] = []float64{0, 0}
+		}
 		return
 	}
 
-	grqVals := make([]float64, len(history))
-	lrqVals := make([]float64, len(history))
+	length := len(history)
+	grqVals := make([]float64, length)
+	lrqVals := make([]float64, length)
+	idleProcVals := make([]float64, length)
+	threadVals := make([]float64, length)
 
 	for i, h := range history {
 		grqVals[i] = float64(h.GRQ)
 		lrqVals[i] = float64(h.LRQSum)
+		idleProcVals[i] = float64(h.IdleProcs)
+		threadVals[i] = float64(h.Threads)
 	}
 
 	p.Data[0] = grqVals
 	p.Data[1] = lrqVals
+	p.Data[2] = idleProcVals
+	p.Data[3] = threadVals
 }
