@@ -16,6 +16,18 @@ import (
 	"github.com/JustSkiv/goschedviz/internal/ui/termui"
 )
 
+type collector interface {
+	Start(ctx context.Context) (<-chan domain.SchedulerSnapshot, error)
+	Stop() error
+}
+
+type presenter interface {
+	Start() error
+	Stop()
+	Update(data ui.UIData)
+	Done() <-chan struct{}
+}
+
 func main() {
 	var (
 		targetPath = flag.String("target", "", "Path to Go program to monitor")
@@ -51,17 +63,25 @@ func main() {
 		cancel()
 	}()
 
-	// Start collecting metrics
-	snapshots, err := collector.Start(ctx)
-	if err != nil {
-		log.Fatalf("Failed to start collector: %v", err)
+	if err := monitorScheduler(ctx, collector, presenter); err != nil {
+		log.Println("Error:", err)
+		return
 	}
-	defer collector.Stop()
 
-	// Create monitor state
+}
+
+func monitorScheduler(ctx context.Context, c collector, p presenter) error {
+	snapshots, err := c.Start(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to start collector: %w", err)
+	}
+	defer func() {
+		if err := c.Stop(); err != nil {
+			log.Println("Failed to stop collector:", err)
+		}
+	}()
+
 	state := &domain.MonitorState{}
-
-	// Main update loop
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
@@ -69,22 +89,20 @@ func main() {
 		select {
 		case snapshot, ok := <-snapshots:
 			if !ok {
-				return
+				return nil
 			}
 			state.Update(snapshot)
 
 		case <-ticker.C:
 			latest, history := state.GetSnapshot()
-
-			// Convert domain data to UI data
 			uiData := convertToUIData(latest, history)
-			presenter.Update(uiData)
+			p.Update(uiData)
 
-		case <-presenter.Done():
-			return
+		case <-p.Done():
+			return nil
 
 		case <-ctx.Done():
-			return
+			return nil
 		}
 	}
 }
