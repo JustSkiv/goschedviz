@@ -16,7 +16,7 @@ import (
 // Shows:
 // - Exit instructions
 // - Last update timestamp
-// - Maximum values for GRQ and LRQ
+// - Maximum values for GRQ and goroutines
 type InfoBox struct {
 	*widgets.Paragraph
 }
@@ -34,12 +34,12 @@ func NewInfoBox() *InfoBox {
 // Update refreshes info box with current monitoring state.
 func (i *InfoBox) Update(current ui.CurrentValues, gauges ui.GaugeValues) {
 	i.Text = fmt.Sprintf(
-		"Exit: press 'q'\n"+
-			"Last update: %s\n"+
+		"Last update: %s\n"+
 			"Max GRQ: %d\n"+
-			"Max LRQ (sum): %d\n",
+			"Max Gs: %d\n"+
+			"Exit: press 'q'",
 		time.Now().Format("15:04:05"),
 		gauges.GRQ.Max,
-		gauges.LRQ.Max,
+		gauges.Goroutines.Max,
 	)
 }

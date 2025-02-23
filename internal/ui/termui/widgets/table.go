@@ -19,14 +19,13 @@ func NewTableWidget() *TableWidget {
 	t := &TableWidget{
 		Table: widgets.NewTable(),
 	}
-	t.Title = "Current Scheduler Values"
+	t.Title = "Current Values"
 	t.TextStyle = tui.NewStyle(tui.ColorWhite)
 	t.RowSeparator = false
 	t.BorderStyle.Fg = tui.ColorYellow
 
 	// Add initial empty data to prevent panic on first render
 	t.Rows = [][]string{
-		{"Field", "Value"},
 		{"Time (ms)", "-"},
 		{"gomaxprocs", "-"},
 		{"idleprocs", "-"},
@@ -45,7 +44,6 @@ func NewTableWidget() *TableWidget {
 // Update updates table with current values.
 func (t *TableWidget) Update(data ui.CurrentValues) {
 	t.Rows = [][]string{
-		{"Field", "Value"},
 		{"Time (ms)", strconv.Itoa(data.TimeMs)},
 		{"gomaxprocs", strconv.Itoa(data.GoMaxProcs)},
 		{"idleprocs", strconv.Itoa(data.IdleProcs)},

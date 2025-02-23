@@ -99,3 +99,25 @@ func (g *IdleProcsGauge) Update(data struct{ Current, Max int }) {
 	g.Label = fmt.Sprintf("%d", data.Current)
 	g.Percent = data.Current * 100 / data.Max
 }
+
+// GoroutinesGauge displays number of goroutines.
+type GoroutinesGauge struct {
+	*widgets.Gauge
+}
+
+// NewGoroutinesGauge creates a new goroutines gauge widget with default styling.
+func NewGoroutinesGauge() *GoroutinesGauge {
+	g := &GoroutinesGauge{
+		Gauge: widgets.NewGauge(),
+	}
+	g.Title = "Goroutines"
+	g.BarColor = tui.ColorBlue
+	g.TitleStyle.Fg = tui.ColorCyan
+	return g
+}
+
+// Update updates goroutines gauge values showing current value.
+func (g *GoroutinesGauge) Update(data struct{ Current, Max int }) {
+	g.Label = fmt.Sprintf("%d", data.Current)
+	g.Percent = data.Current * 100 / data.Max
+}

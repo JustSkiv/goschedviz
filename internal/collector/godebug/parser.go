@@ -8,11 +8,34 @@ import (
 	"github.com/JustSkiv/goschedviz/internal/domain"
 )
 
-// Parser handles parsing of GODEBUG schedtrace output lines.
+// Parser handles parsing of GODEBUG schedtrace output.
 type Parser struct {
 	// Example of schedtrace output:
 	// SCHED 2013ms: gomaxprocs=14 idleprocs=14 threads=22 spinningthreads=0 needspinning=0 idlethreads=17 runqueue=0 [0 0 0 0 0 0 0 0 0 0 0 0 0 0]
 	regex *regexp.Regexp
+	// lastGoroutines holds the last seen goroutines count from metrics
+	lastGoroutines int
+}
+
+// parseMetrics attempts to parse process metrics line.
+// Returns number of goroutines if successful, or -1 if parsing failed.
+func (p *Parser) parseMetrics(line string) int {
+	if !strings.HasPrefix(line, "PROCMETR") {
+		return -1
+	}
+
+	// Extract goroutines count from format "PROCMETR num_goroutines=1234"
+	parts := strings.Split(line, "=")
+	if len(parts) != 2 {
+		return -1
+	}
+
+	count, err := strconv.Atoi(strings.TrimSpace(parts[1]))
+	if err != nil {
+		return -1
+	}
+
+	return count
 }
 
 // NewParser creates a new GODEBUG output parser.
@@ -77,6 +100,12 @@ func (p *Parser) isValidSnapshot(s domain.SchedulerSnapshot) bool {
 // Parse attempts to parse a single line of schedtrace output.
 // Returns the parsed snapshot and true if successful, or zero value and false if parsing failed.
 func (p *Parser) Parse(line string) (domain.SchedulerSnapshot, bool) {
+	// Try to parse metrics line first
+	if goroutines := p.parseMetrics(line); goroutines >= 0 {
+		p.lastGoroutines = goroutines
+		return domain.SchedulerSnapshot{}, false
+	}
+
 	matches := p.regex.FindStringSubmatch(line)
 	if len(matches) != 10 { // 1 full match + 9 groups
 		return domain.SchedulerSnapshot{}, false
@@ -147,6 +176,7 @@ func (p *Parser) Parse(line string) (domain.SchedulerSnapshot, bool) {
 		RunQueue:        runQ,
 		LRQSum:          sumLRQ,
 		LRQ:             lrqVals,
+		Goroutines:      p.lastGoroutines,
 	}
 
 	// Perform additional validation of the snapshot

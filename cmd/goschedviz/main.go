@@ -110,15 +110,15 @@ func monitorScheduler(ctx context.Context, c collector, p presenter) error {
 // convertToUIData converts domain data to UI-specific format
 func convertToUIData(latest domain.SchedulerSnapshot, history []domain.SchedulerSnapshot) ui.UIData {
 	// Calculate max values for gauges
-	maxGRQ, maxLRQ, maxThreads, maxIdleProcs := 0, 0, 0, 0
+	maxGRQ, maxGoroutines, maxThreads, maxIdleProcs := 0, 0, 0, 0
 	histValues := make([]ui.HistoricalValues, len(history))
 
 	for i, h := range history {
 		if h.RunQueue > maxGRQ {
 			maxGRQ = h.RunQueue
 		}
-		if h.LRQSum > maxLRQ {
-			maxLRQ = h.LRQSum
+		if h.Goroutines > maxGoroutines {
+			maxGoroutines = h.Goroutines
 		}
 		if h.Threads > maxThreads {
 			maxThreads = h.Threads
@@ -128,11 +128,12 @@ func convertToUIData(latest domain.SchedulerSnapshot, history []domain.Scheduler
 		}
 
 		histValues[i] = ui.HistoricalValues{
-			TimeMs:    h.TimeMs,
-			GRQ:       h.RunQueue,
-			LRQSum:    h.LRQSum,
-			IdleProcs: h.IdleProcs,
-			Threads:   h.Threads,
+			TimeMs:     h.TimeMs,
+			GRQ:        h.RunQueue,
+			LRQSum:     h.LRQSum,
+			IdleProcs:  h.IdleProcs,
+			Threads:    h.Threads,
+			Goroutines: h.Goroutines,
 		}
 	}
 
@@ -140,8 +141,8 @@ func convertToUIData(latest domain.SchedulerSnapshot, history []domain.Scheduler
 	if maxGRQ == 0 {
 		maxGRQ = 1
 	}
-	if maxLRQ == 0 {
-		maxLRQ = 1
+	if maxGoroutines == 0 {
+		maxGoroutines = 1
 	}
 	if maxThreads == 0 {
 		maxThreads = 1
@@ -150,7 +151,7 @@ func convertToUIData(latest domain.SchedulerSnapshot, history []domain.Scheduler
 		maxIdleProcs = 1
 	}
 
-	return ui.UIData{
+	result := ui.UIData{
 		Current: ui.CurrentValues{
 			TimeMs:          latest.TimeMs,
 			GoMaxProcs:      latest.GoMaxProcs,
@@ -163,8 +164,8 @@ func convertToUIData(latest domain.SchedulerSnapshot, history []domain.Scheduler
 			LRQSum:          latest.LRQSum,
 			NumP:            len(latest.LRQ),
 			LRQ:             latest.LRQ,
+			Goroutines:      latest.Goroutines,
 		},
-		History: histValues,
 		Gauges: ui.GaugeValues{
 			GRQ: struct {
 				Current int
@@ -173,12 +174,12 @@ func convertToUIData(latest domain.SchedulerSnapshot, history []domain.Scheduler
 				Current: latest.RunQueue,
 				Max:     maxGRQ,
 			},
-			LRQ: struct {
+			Goroutines: struct {
 				Current int
 				Max     int
 			}{
-				Current: latest.LRQSum,
-				Max:     maxLRQ,
+				Current: latest.Goroutines,
+				Max:     maxGoroutines,
 			},
 			Threads: struct {
 				Current int
@@ -196,4 +197,8 @@ func convertToUIData(latest domain.SchedulerSnapshot, history []domain.Scheduler
 			},
 		},
 	}
+
+	result.History.Raw = histValues
+
+	return result
 }

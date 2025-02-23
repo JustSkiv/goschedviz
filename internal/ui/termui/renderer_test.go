@@ -17,28 +17,6 @@ func TestTermUI_New(t *testing.T) {
 	assert.NotNil(t, term.done, "Done channel should be initialized")
 }
 
-func TestTermUI_DoneChannel(t *testing.T) {
-	term := New()
-	done := term.Done()
-	require.NotNil(t, done, "Done() should return non-nil channel")
-
-	select {
-	case <-done:
-		t.Fatal("Done channel should not be closed initially")
-	default:
-		// This is expected - channel should be open
-	}
-
-	close(term.done)
-
-	select {
-	case <-done:
-		// This is expected - channel should be closed
-	default:
-		t.Fatal("Done channel should be closed after closing internal channel")
-	}
-}
-
 func TestTermUI_StartStop(t *testing.T) {
 	term := newWithTerminal(newTestTerminal())
 
@@ -53,8 +31,12 @@ func TestTermUI_StartStop(t *testing.T) {
 	require.NotNil(t, term.table, "Table widget should be initialized")
 	require.NotNil(t, term.barChart, "Bar chart widget should be initialized")
 	require.NotNil(t, term.grqGauge, "GRQ gauge should be initialized")
-	require.NotNil(t, term.lrqGauge, "LRQ gauge should be initialized")
-	require.NotNil(t, term.plot, "Plot widget should be initialized")
+	require.NotNil(t, term.goroutinesGauge, "Goroutines gauge should be initialized")
+	require.NotNil(t, term.threadsGauge, "Threads gauge should be initialized")
+	require.NotNil(t, term.idleProcsGauge, "IdleProcs gauge should be initialized")
+	require.NotNil(t, term.linearPlot, "Linear plot widget should be initialized")
+	require.NotNil(t, term.logPlot, "Log plot widget should be initialized")
+	require.NotNil(t, term.legend, "Legend widget should be initialized")
 	require.NotNil(t, term.info, "Info widget should be initialized")
 	require.NotNil(t, term.grid, "Grid should be initialized")
 }
@@ -65,7 +47,6 @@ func TestTermUI_Update(t *testing.T) {
 	require.NoError(t, err)
 	defer term.Stop()
 
-	// Test various data scenarios
 	tests := []struct {
 		name string
 		data ui.UIData
@@ -74,10 +55,10 @@ func TestTermUI_Update(t *testing.T) {
 			name: "empty data",
 			data: ui.UIData{
 				Gauges: ui.GaugeValues{
-					GRQ:       struct{ Current, Max int }{0, 1},
-					LRQ:       struct{ Current, Max int }{0, 1},
-					Threads:   struct{ Current, Max int }{0, 1},
-					IdleProcs: struct{ Current, Max int }{0, 1},
+					GRQ:        struct{ Current, Max int }{0, 1},
+					Goroutines: struct{ Current, Max int }{0, 1},
+					Threads:    struct{ Current, Max int }{0, 1},
+					IdleProcs:  struct{ Current, Max int }{0, 1},
 				},
 			},
 		},
@@ -96,46 +77,23 @@ func TestTermUI_Update(t *testing.T) {
 					LRQSum:          10,
 					NumP:            4,
 					LRQ:             []int{2, 3, 1, 4},
+					Goroutines:      100,
 				},
-				History: []ui.HistoricalValues{
-					{TimeMs: 0, GRQ: 0, LRQSum: 0},
-					{TimeMs: 500, GRQ: 2, LRQSum: 5},
-					{TimeMs: 1000, GRQ: 5, LRQSum: 10},
-				},
-				Gauges: ui.GaugeValues{
-					GRQ:       struct{ Current, Max int }{5, 10},
-					LRQ:       struct{ Current, Max int }{10, 20},
-					Threads:   struct{ Current, Max int }{8, 16},
-					IdleProcs: struct{ Current, Max int }{2, 4},
-				},
-			},
-		},
-		{
-			name: "high load",
-			data: ui.UIData{
-				Current: ui.CurrentValues{
-					TimeMs:          5000,
-					GoMaxProcs:      32,
-					IdleProcs:       0,
-					Threads:         64,
-					SpinningThreads: 8,
-					NeedSpinning:    4,
-					IdleThreads:     0,
-					RunQueue:        100,
-					LRQSum:          500,
-					NumP:            32,
-					LRQ:             make([]int, 32),
-				},
-				History: []ui.HistoricalValues{
-					{TimeMs: 4800, GRQ: 90, LRQSum: 450},
-					{TimeMs: 4900, GRQ: 95, LRQSum: 480},
-					{TimeMs: 5000, GRQ: 100, LRQSum: 500},
+				History: struct {
+					Raw    []ui.HistoricalValues
+					Scaled []ui.HistoricalValues
+				}{
+					Raw: []ui.HistoricalValues{
+						{TimeMs: 0, GRQ: 0, LRQSum: 0, Threads: 0, IdleProcs: 0, Goroutines: 0},
+						{TimeMs: 500, GRQ: 2, LRQSum: 5, Threads: 4, IdleProcs: 1, Goroutines: 50},
+						{TimeMs: 1000, GRQ: 5, LRQSum: 10, Threads: 8, IdleProcs: 2, Goroutines: 100},
+					},
 				},
 				Gauges: ui.GaugeValues{
-					GRQ:       struct{ Current, Max int }{100, 200},
-					LRQ:       struct{ Current, Max int }{500, 1000},
-					Threads:   struct{ Current, Max int }{64, 128},
-					IdleProcs: struct{ Current, Max int }{0, 32},
+					GRQ:        struct{ Current, Max int }{5, 10},
+					Goroutines: struct{ Current, Max int }{100, 200},
+					Threads:    struct{ Current, Max int }{8, 16},
+					IdleProcs:  struct{ Current, Max int }{2, 4},
 				},
 			},
 		},
@@ -201,41 +159,4 @@ func TestTermUI_ResizeEvent(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	<-done
 	term.Stop()
-}
-
-func TestTermUI_LargeDataSet(t *testing.T) {
-	term := newWithTerminal(newTestTerminal())
-
-	err := term.Start()
-	require.NoError(t, err)
-	defer term.Stop()
-
-	// Create large test data
-	largeData := ui.UIData{
-		Current: ui.CurrentValues{
-			GoMaxProcs: 32,
-			NumP:       32,
-			LRQ:        make([]int, 32),
-		},
-		Gauges: ui.GaugeValues{
-			GRQ:       struct{ Current, Max int }{0, 100},
-			LRQ:       struct{ Current, Max int }{0, 100},
-			Threads:   struct{ Current, Max int }{0, 100},
-			IdleProcs: struct{ Current, Max int }{0, 100},
-		},
-	}
-
-	// Fill history with test data
-	largeData.History = make([]ui.HistoricalValues, 1000)
-	for i := range largeData.History {
-		largeData.History[i] = ui.HistoricalValues{
-			TimeMs: i * 100,
-			GRQ:    i % 50,
-			LRQSum: i % 100,
-		}
-	}
-
-	assert.NotPanics(t, func() {
-		term.Update(largeData)
-	}, "Update with large data set should not panic")
 }

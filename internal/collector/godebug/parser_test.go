@@ -130,3 +130,67 @@ func TestParser_Parse(t *testing.T) {
 		})
 	}
 }
+
+func TestParser_ParseMetrics(t *testing.T) {
+	parser := NewParser()
+	tests := []struct {
+		name     string
+		input    string
+		expected int
+	}{
+		{
+			name:     "valid metrics line",
+			input:    "PROCMETR num_goroutines=1234",
+			expected: 1234,
+		},
+		{
+			name:     "invalid prefix",
+			input:    "WRONGPREFIX num_goroutines=1234",
+			expected: -1,
+		},
+		{
+			name:     "invalid format",
+			input:    "PROCMETR bad_format",
+			expected: -1,
+		},
+		{
+			name:     "invalid number",
+			input:    "PROCMETR num_goroutines=abc",
+			expected: -1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := parser.parseMetrics(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestParser_GoroutinesUpdate(t *testing.T) {
+	parser := NewParser()
+
+	// First parse metrics line
+	snapshot, ok := parser.Parse("PROCMETR num_goroutines=1234")
+	assert.False(t, ok, "Metrics line should not produce snapshot")
+
+	// Then parse sched line to get snapshot with goroutines count
+	schedLine := "SCHED 1000ms: gomaxprocs=4 idleprocs=2 threads=8 spinningthreads=1 needspinning=0 idlethreads=3 runqueue=5 [1 2 1 0]"
+	snapshot, ok = parser.Parse(schedLine)
+	assert.True(t, ok, "Should parse sched line")
+	assert.Equal(t, 1234, snapshot.Goroutines, "Should include goroutines count")
+
+	// Test that goroutines count persists between sched lines
+	snapshot, ok = parser.Parse(schedLine)
+	assert.True(t, ok, "Should parse sched line")
+	assert.Equal(t, 1234, snapshot.Goroutines, "Should maintain goroutines count")
+
+	// Test updating goroutines count
+	snapshot, ok = parser.Parse("PROCMETR num_goroutines=5678")
+	assert.False(t, ok, "Metrics line should not produce snapshot")
+
+	snapshot, ok = parser.Parse(schedLine)
+	assert.True(t, ok, "Should parse sched line")
+	assert.Equal(t, 5678, snapshot.Goroutines, "Should update goroutines count")
+}

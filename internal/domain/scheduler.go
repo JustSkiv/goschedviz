@@ -16,6 +16,7 @@ type SchedulerSnapshot struct {
 	RunQueue        int   // Global Run Queue (GRQ) length
 	LRQSum          int   // Sum of all Local Run Queues
 	LRQ             []int // Local Run Queue length for each P
+	Goroutines      int   // Number of goroutines from process metrics
 }
 
 // MonitorState maintains the current state and history of scheduler metrics.

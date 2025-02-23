@@ -53,17 +53,19 @@ func (t *testTerminal) SendEvent(e termui.Event) {
 
 // TermUI implements ui.Presenter interface using termui library.
 type TermUI struct {
-	table          *widgets.TableWidget
-	barChart       *widgets.LRQBarChart
-	grqGauge       *widgets.GRQGauge
-	lrqGauge       *widgets.LRQGauge
-	threadsGauge   *widgets.ThreadsGauge
-	idleProcsGauge *widgets.IdleProcsGauge
-	plot           *widgets.HistoryPlot
-	info           *widgets.InfoBox
-	grid           *termui.Grid
-	done           chan struct{}
-	term           terminalAPI
+	table           *widgets.TableWidget
+	barChart        *widgets.LRQBarChart
+	grqGauge        *widgets.GRQGauge
+	goroutinesGauge *widgets.GoroutinesGauge
+	threadsGauge    *widgets.ThreadsGauge
+	idleProcsGauge  *widgets.IdleProcsGauge
+	linearPlot      *widgets.LinearHistoryPlot
+	logPlot         *widgets.LogHistoryPlot
+	legend          *widgets.PlotLegend
+	info            *widgets.InfoBox
+	grid            *termui.Grid
+	done            chan struct{}
+	term            terminalAPI
 }
 
 // New creates a new terminal UI implementation.
@@ -92,10 +94,12 @@ func (t *TermUI) Start() error {
 	t.table = widgets.NewTableWidget()
 	t.barChart = widgets.NewLRQBarChart()
 	t.grqGauge = widgets.NewGRQGauge()
-	t.lrqGauge = widgets.NewLRQGauge()
+	t.goroutinesGauge = widgets.NewGoroutinesGauge()
 	t.threadsGauge = widgets.NewThreadsGauge()
 	t.idleProcsGauge = widgets.NewIdleProcsGauge()
-	t.plot = widgets.NewHistoryPlot()
+	t.linearPlot = widgets.NewLinearHistoryPlot()
+	t.logPlot = widgets.NewLogHistoryPlot()
+	t.legend = widgets.NewPlotLegend()
 	t.info = widgets.NewInfoBox()
 
 	// Setup grid
@@ -122,10 +126,11 @@ func (t *TermUI) Update(data ui.UIData) {
 	t.table.Update(data.Current)
 	t.barChart.Update(data.Current.LRQ)
 	t.grqGauge.Update(data.Gauges.GRQ)
-	t.lrqGauge.Update(data.Gauges.LRQ)
+	t.goroutinesGauge.Update(data.Gauges.Goroutines)
 	t.threadsGauge.Update(data.Gauges.Threads)
 	t.idleProcsGauge.Update(data.Gauges.IdleProcs)
-	t.plot.Update(data.History)
+	t.linearPlot.Update(data.History.Raw)
+	t.logPlot.Update(data.History.Raw)
 	t.info.Update(data.Current, data.Gauges)
 
 	t.term.Render(t.grid)
@@ -139,8 +144,9 @@ func (t *TermUI) setupGrid() {
 
 	t.grid.Set(
 		termui.NewRow(0.3,
-			termui.NewCol(0.4, t.table),
-			termui.NewCol(0.6, t.barChart),
+			termui.NewCol(0.30, t.table),
+			termui.NewCol(0.15, t.info),
+			termui.NewCol(0.55, t.barChart),
 		),
 		termui.NewRow(0.3,
 			termui.NewCol(0.5,
@@ -148,13 +154,14 @@ func (t *TermUI) setupGrid() {
 				termui.NewRow(0.5, t.idleProcsGauge),
 			),
 			termui.NewCol(0.5,
-				termui.NewRow(0.5, t.lrqGauge),
+				termui.NewRow(0.5, t.goroutinesGauge),
 				termui.NewRow(0.5, t.grqGauge),
 			),
 		),
 		termui.NewRow(0.4,
-			termui.NewCol(0.8, t.plot),
-			termui.NewCol(0.2, t.info),
+			termui.NewCol(0.1, t.legend),
+			termui.NewCol(0.45, t.linearPlot),
+			termui.NewCol(0.45, t.logPlot),
 		),
 	)
 }

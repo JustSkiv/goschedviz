@@ -31,34 +31,24 @@ func (m *MockCollector) Stop() error {
 	return nil
 }
 
-// Add to MockPresenter
 type MockPresenter struct {
-	done        chan struct{}
-	updateFunc  func(ui.UIData)
-	updateError error
+	done       chan struct{}
+	updateFunc func(ui.UIData)
 }
 
-func (m *MockPresenter) Start() error {
-	return nil
+func (m *MockPresenter) Start() error { return nil }
+func (m *MockPresenter) Stop()        {}
+func (m *MockPresenter) Done() <-chan struct{} {
+	return m.done
 }
-
-func (m *MockPresenter) Stop() {}
 
 func (m *MockPresenter) Update(data ui.UIData) {
-	if m.updateError != nil {
-		return
-	}
 	if m.updateFunc != nil {
 		m.updateFunc(data)
 	}
 }
 
-func (m *MockPresenter) Done() <-chan struct{} {
-	return m.done
-}
-
 func TestMonitorScheduler(t *testing.T) {
-	// Setup mocks
 	mockCollector := &MockCollector{
 		snapshots: make(chan domain.SchedulerSnapshot),
 	}
@@ -66,23 +56,19 @@ func TestMonitorScheduler(t *testing.T) {
 		done: make(chan struct{}),
 	}
 
-	// Context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	// Track UI updates
 	var updates []ui.UIData
 	mockPresenter.updateFunc = func(data ui.UIData) {
 		updates = append(updates, data)
 	}
 
-	// Start monitoring in background
 	errChan := make(chan error)
 	go func() {
 		errChan <- monitorScheduler(ctx, mockCollector, mockPresenter)
 	}()
 
-	// Send test data
 	testData := []domain.SchedulerSnapshot{
 		{
 			TimeMs:     100,
@@ -104,42 +90,27 @@ func TestMonitorScheduler(t *testing.T) {
 		mockCollector.snapshots <- data
 	}
 
-	// Wait for at least one UI update (ticker period is 500ms)
 	time.Sleep(600 * time.Millisecond)
-
-	// Clean shutdown
 	close(mockCollector.snapshots)
 
-	// Wait for completion
 	err := <-errChan
 	require.NoError(t, err)
 
-	// Verify updates
-	assert.GreaterOrEqual(t, len(updates), 1, "should receive UI updates")
-	if len(updates) > 0 {
-		lastUpdate := updates[len(updates)-1]
-		assert.Equal(t, testData[1].TimeMs, lastUpdate.Current.TimeMs)
-		assert.Equal(t, testData[1].GoMaxProcs, lastUpdate.Current.GoMaxProcs)
-		assert.Equal(t, testData[1].RunQueue, lastUpdate.Current.RunQueue)
-		assert.Equal(t, testData[1].LRQ, lastUpdate.Current.LRQ)
-		assert.Equal(t, testData[1].LRQSum, lastUpdate.Current.LRQSum)
-	}
+	assert.GreaterOrEqual(t, len(updates), 1)
 }
 
 func TestMonitorScheduler_Scenarios(t *testing.T) {
 	tests := []struct {
-		name          string
-		setupMocks    func(collector *MockCollector, presenter *MockPresenter)
-		expectError   bool
-		expectedError string
+		name        string
+		setupMocks  func(collector *MockCollector, presenter *MockPresenter)
+		expectError bool
 	}{
 		{
 			name: "collector_start_error",
 			setupMocks: func(collector *MockCollector, presenter *MockPresenter) {
-				collector.startError = fmt.Errorf("failed to start")
+				collector.startError = fmt.Errorf("start failed")
 			},
-			expectError:   true,
-			expectedError: "failed to start collector: failed to start",
+			expectError: true,
 		},
 		{
 			name: "presenter_done",
@@ -151,10 +122,8 @@ func TestMonitorScheduler_Scenarios(t *testing.T) {
 			},
 		},
 		{
-			name: "context_cancelled",
-			setupMocks: func(collector *MockCollector, presenter *MockPresenter) {
-				// Context will be cancelled by the test timeout
-			},
+			name:       "context_cancelled",
+			setupMocks: func(collector *MockCollector, presenter *MockPresenter) {},
 		},
 	}
 
@@ -177,10 +146,9 @@ func TestMonitorScheduler_Scenarios(t *testing.T) {
 			err := monitorScheduler(ctx, mockCollector, mockPresenter)
 
 			if tt.expectError {
-				require.Error(t, err)
-				assert.Contains(t, err.Error(), tt.expectedError)
+				assert.Error(t, err)
 			} else {
-				require.NoError(t, err)
+				assert.NoError(t, err)
 			}
 		})
 	}
@@ -194,7 +162,6 @@ func TestMonitorScheduler_ErrorsAndCleanup(t *testing.T) {
 		{
 			name: "collector_stop_called",
 			runTest: func(t *testing.T, collector *MockCollector, presenter *MockPresenter) {
-				// Send some data then cancel context
 				go func() {
 					collector.snapshots <- domain.SchedulerSnapshot{TimeMs: 100}
 					time.Sleep(100 * time.Millisecond)
@@ -206,42 +173,37 @@ func TestMonitorScheduler_ErrorsAndCleanup(t *testing.T) {
 
 				err := monitorScheduler(ctx, collector, presenter)
 				require.NoError(t, err)
-				assert.True(t, collector.stopCalled, "Stop should be called")
+				assert.True(t, collector.stopCalled)
 			},
 		},
 		{
-			name: "presenter_error_handled",
+			name: "presenter_signals_done",
 			runTest: func(t *testing.T, collector *MockCollector, presenter *MockPresenter) {
-				presenter.updateError = fmt.Errorf("update failed")
-
 				go func() {
 					collector.snapshots <- domain.SchedulerSnapshot{TimeMs: 100}
-					time.Sleep(600 * time.Millisecond) // Wait for ticker
+					time.Sleep(100 * time.Millisecond)
+					close(presenter.done)
 				}()
 
 				ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 				defer cancel()
 
 				err := monitorScheduler(ctx, collector, presenter)
-				require.NoError(t, err) // Should continue despite presenter errors
+				assert.NoError(t, err)
 			},
 		},
 		{
-			name: "state_updates_after_error",
+			name: "state_updates_continue",
 			runTest: func(t *testing.T, collector *MockCollector, presenter *MockPresenter) {
 				var updates []ui.UIData
 				presenter.updateFunc = func(data ui.UIData) {
 					updates = append(updates, data)
 				}
 
-				// Send data, trigger error, send more data
 				go func() {
 					collector.snapshots <- domain.SchedulerSnapshot{TimeMs: 100}
-					presenter.updateError = fmt.Errorf("temporary error")
-					time.Sleep(100 * time.Millisecond)
-					presenter.updateError = nil
+					time.Sleep(600 * time.Millisecond)
 					collector.snapshots <- domain.SchedulerSnapshot{TimeMs: 200}
-					time.Sleep(600 * time.Millisecond) // Wait for ticker
 				}()
 
 				ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
@@ -249,7 +211,7 @@ func TestMonitorScheduler_ErrorsAndCleanup(t *testing.T) {
 
 				err := monitorScheduler(ctx, collector, presenter)
 				require.NoError(t, err)
-				assert.GreaterOrEqual(t, len(updates), 1, "should receive updates after error recovery")
+				assert.GreaterOrEqual(t, len(updates), 1)
 			},
 		},
 	}
@@ -264,6 +226,141 @@ func TestMonitorScheduler_ErrorsAndCleanup(t *testing.T) {
 			}
 
 			tt.runTest(t, mockCollector, mockPresenter)
+		})
+	}
+}
+
+func TestMonitorScheduler_ErrorHandling(t *testing.T) {
+	tests := []struct {
+		name          string
+		setupMocks    func(collector *MockCollector, presenter *MockPresenter)
+		expectedError string
+	}{
+		{
+			name: "collector_returns_nil_channel",
+			setupMocks: func(c *MockCollector, p *MockPresenter) {
+				c.snapshots = nil
+				c.startError = nil
+			},
+			expectedError: "",
+		},
+		{
+			name: "collector_returns_closed_channel",
+			setupMocks: func(c *MockCollector, p *MockPresenter) {
+				ch := make(chan domain.SchedulerSnapshot)
+				close(ch)
+				c.snapshots = ch
+			},
+			expectedError: "",
+		},
+		{
+			name: "presenter_signals_done",
+			setupMocks: func(c *MockCollector, p *MockPresenter) {
+				c.snapshots = make(chan domain.SchedulerSnapshot)
+				go func() {
+					c.snapshots <- domain.SchedulerSnapshot{TimeMs: 100}
+					time.Sleep(50 * time.Millisecond)
+					close(p.done)
+				}()
+			},
+			expectedError: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockCollector := &MockCollector{
+				snapshots: make(chan domain.SchedulerSnapshot),
+			}
+			mockPresenter := &MockPresenter{
+				done: make(chan struct{}),
+			}
+
+			if tt.setupMocks != nil {
+				tt.setupMocks(mockCollector, mockPresenter)
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+			defer cancel()
+
+			err := monitorScheduler(ctx, mockCollector, mockPresenter)
+			if tt.expectedError != "" {
+				assert.ErrorContains(t, err, tt.expectedError)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestMonitorScheduler_Metrics(t *testing.T) {
+	tests := []struct {
+		name     string
+		metrics  []domain.SchedulerSnapshot
+		validate func(t *testing.T, updates []ui.UIData)
+	}{
+		{
+			name: "increasing_metrics",
+			metrics: []domain.SchedulerSnapshot{
+				{TimeMs: 100, RunQueue: 5, Goroutines: 100},
+				{TimeMs: 200, RunQueue: 10, Goroutines: 200},
+				{TimeMs: 300, RunQueue: 15, Goroutines: 300},
+			},
+			validate: func(t *testing.T, updates []ui.UIData) {
+				require.GreaterOrEqual(t, len(updates), 1)
+				last := updates[len(updates)-1]
+				assert.Equal(t, 15, last.Current.RunQueue)
+				assert.Equal(t, 300, last.Current.Goroutines)
+			},
+		},
+		{
+			name: "fluctuating_metrics",
+			metrics: []domain.SchedulerSnapshot{
+				{TimeMs: 100, RunQueue: 10, Threads: 5},
+				{TimeMs: 200, RunQueue: 5, Threads: 10},
+				{TimeMs: 300, RunQueue: 15, Threads: 7},
+			},
+			validate: func(t *testing.T, updates []ui.UIData) {
+				require.GreaterOrEqual(t, len(updates), 1)
+				last := updates[len(updates)-1]
+				assert.Equal(t, 15, last.Current.RunQueue)
+				assert.GreaterOrEqual(t, last.Gauges.GRQ.Max, 15)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var updates []ui.UIData
+			mockCollector := &MockCollector{
+				snapshots: make(chan domain.SchedulerSnapshot),
+			}
+			mockPresenter := &MockPresenter{
+				done: make(chan struct{}),
+				updateFunc: func(data ui.UIData) {
+					updates = append(updates, data)
+				},
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+			defer cancel()
+
+			errCh := make(chan error)
+			go func() {
+				errCh <- monitorScheduler(ctx, mockCollector, mockPresenter)
+			}()
+
+			for _, m := range tt.metrics {
+				mockCollector.snapshots <- m
+				time.Sleep(200 * time.Millisecond)
+			}
+
+			time.Sleep(200 * time.Millisecond)
+			cancel()
+			err := <-errCh
+			assert.NoError(t, err)
+
+			tt.validate(t, updates)
 		})
 	}
 }

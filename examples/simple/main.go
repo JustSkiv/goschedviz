@@ -3,9 +3,15 @@ package main
 
 import (
 	"time"
+
+	"github.com/JustSkiv/goschedviz/pkg/metrics"
 )
 
 func main() {
+	reporter := metrics.NewReporter(time.Second)
+	reporter.Start()
+	defer reporter.Stop()
+
 	for i := 0; i < 1000; i++ {
 		go func(id int) {
 			for {
@@ -13,7 +19,6 @@ func main() {
 				for i := 0; i < 10000000; i++ {
 					_ = i * i
 				}
-				time.Sleep(time.Millisecond) // небольшая пауза
 			}
 		}(i)
 	}

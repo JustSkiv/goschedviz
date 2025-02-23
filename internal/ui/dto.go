@@ -6,7 +6,10 @@ type UIData struct {
 	Current CurrentValues
 
 	// Historical values for plotting
-	History []HistoricalValues
+	History struct {
+		Raw    []HistoricalValues // Raw values for linear plot
+		Scaled []HistoricalValues // Log-scaled values for log plot
+	}
 
 	// Gauge values
 	Gauges GaugeValues
@@ -25,15 +28,17 @@ type CurrentValues struct {
 	LRQSum          int
 	NumP            int   // Number of P (processors)
 	LRQ             []int // Local run queues by P
+	Goroutines      int
 }
 
 // HistoricalValues contains metrics used for plotting history.
 type HistoricalValues struct {
-	TimeMs    int
-	GRQ       int
-	LRQSum    int
-	IdleProcs int
-	Threads   int
+	TimeMs     int
+	GRQ        int
+	LRQSum     int
+	IdleProcs  int
+	Threads    int
+	Goroutines int
 }
 
 // GaugeValues contains data for all gauges
@@ -42,15 +47,15 @@ type GaugeValues struct {
 		Current int
 		Max     int
 	}
-	LRQ struct {
-		Current int
-		Max     int
-	}
-	IdleProcs struct {
+	Goroutines struct {
 		Current int
 		Max     int
 	}
 	Threads struct {
+		Current int
+		Max     int
+	}
+	IdleProcs struct {
 		Current int
 		Max     int
 	}

@@ -22,13 +22,14 @@ optimized for performance.
 
 ## Features
 
-- Real-time monitoring of Go scheduler metrics
-  using [GODEBUG schedtrace](https://pkg.go.dev/github.com/maximecaron/gotraining/topics/profiling/godebug/schedtrace)
+- Real-time monitoring of Go scheduler metrics using [GODEBUG schedtrace](https://pkg.go.dev/github.com/maximecaron/gotraining/topics/profiling/godebug/schedtrace)
+- Goroutines count monitoring through runtime metrics
 - Terminal UI with multiple visualization widgets:
     - Current scheduler values table
     - Local Run Queue bar chart
-    - Global and Local Run Queue gauges
-    - Historical metrics plot
+    - Gauges for GRQ, Goroutines, Threads and Idle Processors
+    - Dual history plots (linear and logarithmic scales)
+    - Color-coded metrics legend
 - Support for any Go program as monitoring target
 
 ## Installation
@@ -55,6 +56,8 @@ This will install the `goschedviz` binary in your `$GOPATH/bin` directory. Make 
 
 ## Usage
 
+### Basic Usage
+
 ```bash
 goschedviz -target=/path/to/your/program.go -period=1000
 ```
@@ -63,6 +66,31 @@ Where:
 
 - `-target`: Path to Go program to monitor
 - `-period`: GODEBUG schedtrace period in milliseconds (default: 1000)
+
+### Adding Goroutines Metrics to Your Program
+
+To enable goroutines count monitoring, add the metrics reporter to your program:
+
+```go
+package main
+
+import (
+    "time"
+    "github.com/JustSkiv/goschedviz/pkg/metrics"
+)
+
+func main() {
+    // Initialize metrics reporter
+    reporter := metrics.NewReporter(time.Second)
+    reporter.Start()
+    defer reporter.Stop()
+
+    // Your program logic here
+    ...
+}
+```
+
+The reporter will automatically export goroutines count metrics that will be picked up by goschedviz.
 
 ### Controls
 
@@ -79,13 +107,13 @@ package main
 import "time"
 
 func main() {
-	// Create some scheduler load
-	for i := 0; i < 1000; i++ {
-		go func() {
-			time.Sleep(time.Second)
-		}()
-	}
-	time.Sleep(10 * time.Second)
+    // Create some scheduler load
+    for i := 0; i < 1000; i++ {
+        go func() {
+            time.Sleep(time.Second)
+        }()
+    }
+    time.Sleep(10 * time.Second)
 }
 ```
 
@@ -121,8 +149,20 @@ The UI shows several key metrics:
 
 - **Current Values Table**: Shows current scheduler state including GOMAXPROCS, threads count, etc.
 - **Local Run Queue Bars**: Visualizes queue length for each P (processor)
-- **GRQ/LRQ Gauges**: Shows Global and total Local Run Queue lengths
-- **History Plot**: Displays how queue lengths change over time
+- **Metric Gauges**: 
+  * GRQ (Global Run Queue) length
+  * Active goroutines count
+  * System threads count
+  * Idle processors count
+- **History Plots**:
+  * Linear scale plot for precise value tracking
+  * Logarithmic scale plot for better visualization of large ranges
+- **Legend**: Color-coded guide for metrics identification in plots:
+  * GRQ - Global Run Queue (green)
+  * LRQ - Local Run Queues sum (magenta)
+  * THR - OS Threads (red)
+  * IDL - Idle Processors (yellow)
+  * GRT - Goroutines (cyan)
 
 ## How It Works
 
@@ -130,7 +170,8 @@ The tool:
 
 1. Runs your Go program with GODEBUG=schedtrace enabled
 2. Parses scheduler trace output in real-time
-3. Visualizes the metrics using a terminal UI
+3. Collects additional runtime metrics (goroutines count)
+4. Visualizes all metrics using a terminal UI
 
 ## Requirements
 

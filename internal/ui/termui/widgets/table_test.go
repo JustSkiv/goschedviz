@@ -15,7 +15,7 @@ func TestTableWidget_New(t *testing.T) {
 	require.NotNil(t, table, "NewTableWidget should return non-nil table")
 
 	// Check initial configuration
-	assert.Equal(t, "Current Scheduler Values", table.Title,
+	assert.Equal(t, "Current Values", table.Title,
 		"Table should have correct title")
 	assert.False(t, table.RowSeparator,
 		"Table should not have row separators by default")
@@ -23,8 +23,6 @@ func TestTableWidget_New(t *testing.T) {
 	// Verify initial rows structure
 	assert.Greater(t, len(table.Rows), 0,
 		"Table should have initial rows")
-	assert.Equal(t, []string{"Field", "Value"}, table.Rows[0],
-		"First row should contain headers")
 }
 
 func TestTableWidget_Update(t *testing.T) {
@@ -48,7 +46,6 @@ func TestTableWidget_Update(t *testing.T) {
 				NumP:            1,
 			},
 			expected: [][]string{
-				{"Field", "Value"},
 				{"Time (ms)", "0"},
 				{"gomaxprocs", "1"},
 				{"idleprocs", "0"},
@@ -76,7 +73,6 @@ func TestTableWidget_Update(t *testing.T) {
 				NumP:            4,
 			},
 			expected: [][]string{
-				{"Field", "Value"},
 				{"Time (ms)", "1500"},
 				{"gomaxprocs", "4"},
 				{"idleprocs", "2"},
@@ -104,7 +100,6 @@ func TestTableWidget_Update(t *testing.T) {
 				NumP:            32,
 			},
 			expected: [][]string{
-				{"Field", "Value"},
 				{"Time (ms)", "5000"},
 				{"gomaxprocs", "32"},
 				{"idleprocs", "0"},
@@ -124,7 +119,7 @@ func TestTableWidget_Update(t *testing.T) {
 			table := NewTableWidget()
 			table.Update(tt.input)
 
-			// Check number of rows
+			// Check total number of rows
 			assert.Equal(t, len(tt.expected), len(table.Rows),
 				"Table should have correct number of rows")
 
@@ -153,7 +148,9 @@ func TestTableWidget_UpdateDataConsistency(t *testing.T) {
 
 		assert.Equal(t, initialRows, len(table.Rows),
 			"Number of rows should remain constant after update")
-		assert.Equal(t, []string{"Field", "Value"}, table.Rows[0],
-			"Header row should remain unchanged after update")
+
+		// Check first row format
+		assert.Equal(t, 2, len(table.Rows[0]),
+			"Each row should have exactly 2 columns")
 	}
 }
