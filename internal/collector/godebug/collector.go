@@ -90,6 +90,7 @@ func (c *Collector) Start(ctx context.Context) (_ <-chan domain.SchedulerSnapsho
 	// Then run the compiled binary
 	c.cmd = exec.Command("./" + tmpBinary)
 	c.cmd.Env = append(os.Environ(), fmt.Sprintf("GODEBUG=schedtrace=%d", c.period))
+	c.cmd.Stdin = os.Stdin
 
 	stderr, err := c.cmd.StderrPipe()
 	if err != nil {
