@@ -2,8 +2,8 @@
 
 [![Build Status](https://github.com/JustSkiv/goschedviz/workflows/build/badge.svg)](https://github.com/JustSkiv/goschedviz/actions)
 [![Go Reference](https://pkg.go.dev/badge/github.com/JustSkiv/goschedviz.svg)](https://pkg.go.dev/github.com/JustSkiv/goschedviz)
-[![Go Version](https://img.shields.io/github/go-mod/go-version/JustSkiv/goschedviz)](https://go.dev/doc/devel/release)
 [![Release](https://img.shields.io/github/release/JustSkiv/goschedviz.svg?style=flat-square)](https://github.com/JustSkiv/goschedviz/releases)
+[![Telegram](https://img.shields.io/badge/Telegram-@ntuzov-blue?logo=telegram&logoColor=white)](https://t.me/ntuzov)
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/JustSkiv/goschedviz)](https://goreportcard.com/report/github.com/JustSkiv/goschedviz)
 [![codecov](https://codecov.io/gh/JustSkiv/goschedviz/branch/main/graph/badge.svg)](https://app.codecov.io/gh/JustSkiv/goschedviz)
